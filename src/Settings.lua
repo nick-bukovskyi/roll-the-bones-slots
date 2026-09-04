@@ -3,9 +3,9 @@ local _, ns = ...
 local Settings = {}
 ns.Settings = Settings
 
-local callbacks, panel, scaleSlider, scaleInput, animation, hint
+local callbacks, panel, scaleSlider, scaleInput, animation, durationBar, hint
 local refreshing, cancelInput = false, false
-local PANEL_WIDTH, PANEL_HEIGHT = 386, 234
+local PANEL_WIDTH, PANEL_HEIGHT = 386, 266
 
 local function CanEdit()
     return panel and panel:IsShown() and callbacks.canEdit()
@@ -112,15 +112,28 @@ local function CreatePanel()
         Settings.Refresh()
     end)
 
+    durationBar = CreateFrame("CheckButton", nil, panel, "UICheckButtonTemplate")
+    durationBar:SetPoint("TOPLEFT", panel, "TOPLEFT", 18, -128)
+    durationBar:SetSize(28, 28)
+    local durationBarLabel = durationBar:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    durationBarLabel:SetPoint("LEFT", durationBar, "RIGHT", 5, 0)
+    durationBarLabel:SetText("Show duration bar")
+    durationBar:SetScript("OnClick", function()
+        if CanEdit() and ns.Config.SetDurationBarEnabled(durationBar:GetChecked()) then
+            callbacks.changed()
+        end
+        Settings.Refresh()
+    end)
+
     local testSpin = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
-    testSpin:SetPoint("TOPLEFT", panel, "TOPLEFT", 20, -139)
+    testSpin:SetPoint("TOPLEFT", panel, "TOPLEFT", 20, -171)
     testSpin:SetSize(165, 28)
     testSpin:SetText("Test spin")
     testSpin:SetScript("OnClick", function()
         if CanEdit() then callbacks.preview() end
     end)
     local reset = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
-    reset:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -20, -139)
+    reset:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -20, -171)
     reset:SetSize(165, 28)
     reset:SetText("Reset to Defaults")
     reset:SetScript("OnClick", function()
@@ -133,10 +146,10 @@ local function CreatePanel()
         Settings.Refresh()
     end)
     hint = panel:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-    hint:SetPoint("TOP", panel, "TOP", 0, -185)
+    hint:SetPoint("TOP", panel, "TOP", 0, -217)
     hint:SetText("Changes saved automatically")
     local guidance = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    guidance:SetPoint("TOP", panel, "TOP", 0, -203)
+    guidance:SetPoint("TOP", panel, "TOP", 0, -235)
     guidance:SetText("Drag the highlighted display to move it")
 
     panel:SetScript("OnHide", function()
@@ -164,6 +177,7 @@ function Settings.Refresh()
     if not callbacks.canEdit() then Settings.Hide(); return end
     if not scaleInput:HasFocus() then RefreshScale() end
     animation:SetChecked(ns.Config.GetAnimationEnabled())
+    durationBar:SetChecked(ns.Config.GetDurationBarEnabled())
 end
 
 function Settings.Hide()

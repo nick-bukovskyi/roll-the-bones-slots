@@ -6,6 +6,7 @@ ns.Art = Art
 local MEDIA = "Interface\\AddOns\\" .. ADDON_NAME .. "\\media\\"
 local CABINET_HEIGHT = 630 / 1024
 local WELLS = { { 53, 39, 91, 153 }, { 153, 39, 94, 153 }, { 258, 39, 91, 153 } }
+local FOOTER = { x = 50, y = 205, width = 301, height = 26, iconSize = 16 }
 local IDLE_SYMBOLS = { 2, 3, 1 }
 local ORDINARY_SYMBOL_COUNT = 4
 local LIGHT_LEVEL_OFFSET, SYMBOL_LEVEL_OFFSET = 10, 20
@@ -212,31 +213,67 @@ function Art.ReelResult(parent, definition, index)
     end
 end
 
+local function DurationBar(parent)
+    local bar = CreateFrame("StatusBar", nil, parent)
+    bar:SetPoint("TOPLEFT", parent, "TOPLEFT", FOOTER.x, -FOOTER.y)
+    bar:SetSize(FOOTER.width, FOOTER.height)
+    bar:SetFrameLevel(parent:GetFrameLevel() + 1)
+    bar:EnableMouse(false)
+    bar:SetOrientation("HORIZONTAL")
+    bar:SetFillStyle(Enum.StatusBarFillStyle.Standard)
+    bar:SetMinMaxValues(0, 1)
+    bar:SetValue(0)
+
+    local track = bar:CreateTexture(nil, "BACKGROUND")
+    track:SetAllPoints(bar)
+    track:SetColorTexture(0.025, 0.018, 0.008, 0.4)
+    local fill = Texture(bar, "duration-fill.tga")
+    assert(bar:SetStatusBarTexture(fill), "Duration bar texture rejected")
+    bar:SetStatusBarColor(1, 1, 1, 1)
+    return bar
+end
+
+function Art.NativeDurationBar(button)
+    button:SetSize(Art.Width, Art.Height)
+    button:EnableMouse(false)
+    button:SetDurationBar(DurationBar(button), {
+        direction = Enum.StatusBarTimerDirection.RemainingTime,
+        interpolation = Enum.StatusBarInterpolation.Immediate,
+    })
+end
+
 function Art.Footer(parent, definition)
     parent:SetSize(Art.Width, Art.Height)
     local backing = Texture(parent, "cabinet.tga", "BACKGROUND")
-    backing:SetPoint("TOPLEFT", parent, "TOPLEFT", 53, -205)
-    backing:SetSize(292, 26)
-    backing:SetTexCoord(53 / Art.Width, 345 / Art.Width,
-        205 / Art.Height * CABINET_HEIGHT, 231 / Art.Height * CABINET_HEIGHT)
-    local icon
+    backing:SetPoint("TOPLEFT", parent, "TOPLEFT", FOOTER.x, -FOOTER.y)
+    backing:SetSize(FOOTER.width, FOOTER.height)
+    backing:SetTexCoord(FOOTER.x / Art.Width, (FOOTER.x + FOOTER.width) / Art.Width,
+        FOOTER.y / Art.Height * CABINET_HEIGHT, (FOOTER.y + FOOTER.height) / Art.Height * CABINET_HEIGHT)
+    -- Text and icon sit above the optional sibling native bar and its preview
+    local foreground = CreateFrame("Frame", nil, parent)
+    foreground:SetAllPoints(parent)
+    foreground:SetFrameLevel(parent:GetFrameLevel() + 2)
+    local icon, bar
     if definition then
-        icon = Art.Symbol(parent, definition.symbols[1], 22)
-        icon:SetPoint("CENTER", parent, "TOPLEFT", 71, -218)
+        bar = DurationBar(parent)
+        bar:SetMinMaxValues(0, 30)
+        bar:SetValue(26)
+        icon = Art.Symbol(foreground, definition.symbols[1], FOOTER.iconSize)
+        icon:SetPoint("CENTER", foreground, "TOPLEFT", 66, -218)
     else
-        icon = parent:CreateTexture(nil, "ARTWORK")
-        icon:SetSize(22, 22)
-        icon:SetPoint("TOPLEFT", parent, "TOPLEFT", 60, -207)
+        icon = foreground:CreateTexture(nil, "ARTWORK")
+        icon:SetSize(FOOTER.iconSize, FOOTER.iconSize)
+        icon:SetPoint("TOPLEFT", foreground, "TOPLEFT", 58, -210)
     end
-    local name = Art.Label(parent, "", "GameFontNormal", 88, 207, 198, 22)
+    local name = Art.Label(foreground, "", "GameFontNormal", 80, 207, 208, 22)
     name:SetJustifyH("LEFT")
-    local duration = Art.Label(parent, "", "GameFontHighlight", 288, 207, 55, 22)
+    local duration = Art.Label(foreground, "", "GameFontHighlight", 288, 207, 55, 22)
     duration:SetJustifyH("RIGHT")
     if definition then
         name:SetText(definition.label)
         duration:SetText("26 s")
     end
-    return icon, name, duration
+    return icon, name, duration, bar
 end
 
 function Art.NativeFooter(button)

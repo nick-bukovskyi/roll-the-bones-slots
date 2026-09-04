@@ -133,7 +133,7 @@ return function(test, H, loadAddon)
     test("native result strips cover dim idle artwork and the native footer covers the waiting message", function()
         local ns = loadAddon()
         ns.Config.Initialize(nil); ns.Machine.Initialize()
-        eq(#H.nativeSlots, 17)
+        eq(#H.nativeSlots, 18)
         for index = 1, 13 do
             local slot = H.nativeSlots[index]
             -- Inspect test construction metadata only, never invoke a sealed native object
@@ -152,8 +152,9 @@ return function(test, H, loadAddon)
             else
                 local backing = button.children[1]
                 local binding = button.bindings
-                eq(binding.SetIcon.parent, button); eq(binding.SetSpellName.parent, button)
-                eq(binding.SetDurationText.parent, button)
+                local foreground = binding.SetSpellName.parent
+                eq(foreground.parent, button)
+                eq(binding.SetIcon.parent, foreground); eq(binding.SetDurationText.parent, foreground)
                 local waiting
                 for _, child in ipairs(ns.Machine.GetFrame().children) do
                     if rawget(child, "text") == "Awaiting a result" then waiting = child end

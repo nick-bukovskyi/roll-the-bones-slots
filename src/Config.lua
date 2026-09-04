@@ -6,7 +6,7 @@ ns.Config = Config
 
 local SCHEMA_VERSION = 1
 local MIN_SCALE, MAX_SCALE = 0.6, 1.8
-local DEFAULTS = { scale = 1, x = 0, y = -180, animationEnabled = true }
+local DEFAULTS = { scale = 1, x = 0, y = -180, animationEnabled = true, durationBarEnabled = true }
 local database
 local readOnly = false
 
@@ -45,6 +45,9 @@ function Config.Initialize(savedRoot)
         if issecretvalue(root.animationEnabled) or type(root.animationEnabled) ~= "boolean" then
             root.animationEnabled = DEFAULTS.animationEnabled
         end
+        if issecretvalue(root.durationBarEnabled) or type(root.durationBarEnabled) ~= "boolean" then
+            root.durationBarEnabled = DEFAULTS.durationBarEnabled
+        end
         root.schemaVersion = SCHEMA_VERSION
         database = root
     end
@@ -73,6 +76,10 @@ function Config.GetAnimationEnabled()
     return database.animationEnabled
 end
 
+function Config.GetDurationBarEnabled()
+    return database.durationBarEnabled
+end
+
 function Config.SetScale(value)
     if not database or readOnly or not IsScale(value) then return false end
     database.scale = value
@@ -92,6 +99,14 @@ function Config.SetAnimationEnabled(value)
         return false
     end
     database.animationEnabled = value
+    return true
+end
+
+function Config.SetDurationBarEnabled(value)
+    if not database or readOnly or issecretvalue(value) or type(value) ~= "boolean" then
+        return false
+    end
+    database.durationBarEnabled = value
     return true
 end
 

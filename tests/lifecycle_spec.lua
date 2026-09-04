@@ -18,9 +18,11 @@ return function(test, H, loadAddon)
         local found = {}
         for _, frame in ipairs(H.frames) do
             if frame.parent == H.cabinet() and frame.kind == "Frame" then
-                for _, child in ipairs(frame.children) do
-                    if child.kind == "FontString" and rawget(child, "text") == "26 s" then
-                        found[#found + 1] = frame
+                for _, foreground in ipairs(frame.children) do
+                    for _, child in ipairs(foreground.children) do
+                        if child.kind == "FontString" and rawget(child, "text") == "26 s" then
+                            found[#found + 1] = frame
+                        end
                     end
                 end
             end
@@ -38,7 +40,7 @@ return function(test, H, loadAddon)
     end
     local function nativeEnabled(expected)
         local containers = H.containers()
-        eq(#containers, 8)
+        eq(#containers, 9)
         for _, container in ipairs(containers) do eq(container.enabled, expected) end
     end
     local function carriers()
@@ -82,7 +84,7 @@ return function(test, H, loadAddon)
         H.fire("PLAYER_LOGIN"); H.fire("ADDON_LOADED", "RollTheBonesSlots")
         ns.Machine.Initialize(); ns.EditMode.Initialize(function() error("duplicate owner installed") end)
         ns.EditMode.TryAttachManager()
-        eq(#H.frames, count); eq(H.hookCount, hooks); eq(hooks, 4); eq(H.auraSlotCount, 17)
+        eq(#H.frames, count); eq(H.hookCount, hooks); eq(hooks, 4); eq(H.auraSlotCount, 18)
         eq(ns.Machine.GetFrame(), H.cabinet()); eq(H.cabinet():IsVisible(), true)
         eq(next(SlashCmdList), nil); eq(SLASH_ROLLTHEBONESSLOTS1, nil); eq(H.categoryCount, 0)
     end)
@@ -104,7 +106,7 @@ return function(test, H, loadAddon)
         local ns = loadAddon()
         H.loggedIn = true; EditModeManagerFrame = nil
         H.fire("ADDON_LOADED", "RollTheBonesSlots")
-        eq(H.auraSlotCount, 17); eq(H.hookCount, 0)
+        eq(H.auraSlotCount, 18); eq(H.hookCount, 0)
         H.fire("ADDON_LOADED", "Unrelated"); eq(H.hookCount, 0)
         H.newManager(); H.fire("ADDON_LOADED", "Blizzard_EditMode")
         eq(H.hookCount, 4)
@@ -186,7 +188,7 @@ return function(test, H, loadAddon)
         local animation = H.findTemplate("UICheckButtonTemplate")
         animation:SetChecked(false); animation.scripts.OnClick(animation); assertSettled()
         H.exitEditMode(); spin("reduced-motion"); assertSettled()
-        eq(H.auraSlotCount, 17)
+        eq(H.auraSlotCount, 18)
     end)
 
     test("Edit Mode owns the only preview and samples never coexist with native results", function()
@@ -281,7 +283,7 @@ return function(test, H, loadAddon)
             eq(input.focused, false); eq(ns.Config.GetScale(), 1)
             eq(input.parent:IsShown(), false)
             H.exitEditMode(); selectCabinet()
-            eq(#H.frames, count); eq(H.hookCount, hooks); eq(H.auraSlotCount, 17)
+            eq(#H.frames, count); eq(H.hookCount, hooks); eq(H.auraSlotCount, 18)
         end
         H.exitEditMode()
     end)

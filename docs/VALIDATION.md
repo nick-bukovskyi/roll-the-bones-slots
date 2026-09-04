@@ -1,10 +1,10 @@
 # Development validation
 
-Status: **Implemented, Unverified** for cast-timed lighting behind the result symbols.
+Status: **Implemented, Unverified** for the optional duration bar and cast-timed lighting behind the result symbols.
 The user confirmed no in-game errors with the preceding preview-only repair.
 Source and off-client checks do not establish release readiness. No live-client
 installation, game control, CVar changes or real SavedVariables edits were performed
-for this repair.
+for this feature.
 
 ## Target and evidence
 
@@ -16,6 +16,74 @@ for this repair.
 - IronfurTracker informed the native-styled editor, ownership and packaging patterns; its dependencies, Interface declaration and optional third-party integrations were not copied
 
 ## Behavior and ownership
+
+### Optional duration bar contract and proof matrix
+
+The user's follow-up screenshot shows One of a Kind with 47 seconds and a partial
+fill, and identifies an oversized icon, inset bar edges and a flat-looking fill.
+It proves that the previous footer rendered in that pictured state, not continuous
+timing, extensions or restricted-context safety. The refinement uses a 16-unit
+icon inside the 26-unit row, the cabinet's full inner width (x=50 through 351),
+and a bundled generated worn-brass fill. The native timing and toggle paths stay
+unchanged. SetStatusBarColor and the existing texture/anchor methods were checked
+against the same pinned 12.1.0.69587 source; all styling occurs before binding.
+
+The next user screenshot shows the refined footer at 24 seconds and confirms
+the layout is better, but the gold is too dark. The follow-up changes only the
+authored SetStatusBarColor multiplier from 0.62 to 1 for all RGB channels, keeping
+alpha at 1. The generated PNG, exported TGA, row geometry, timing and settings
+are unchanged. The same appearance matrix applies: verify full/partial fill and
+text contrast at supported scales off-client, then verify native rendering in
+Retail 12.1.0.69587. This static construction-color change introduces no new
+combat, lifecycle or persistence path; existing native proof gaps remain.
+
+| Appearance refinement | Applicability | Proof required |
+| --- | --- | --- |
+| Live icon/name/time, every rank, bar on/off, full/partial/empty fill | Required | Icon remains inside the row with padding; bar meets both inner edges and text stays above it; construction regression and authored preview, exact client unverified |
+| 60%, 100%, 180%, UI scale/resolution and native tooltip | Required | Smaller icon remains recognizable, worn-gold texture fits the cabinet, edges do not cover trim, input remains available; authored preview plus client check |
+| PNG-to-TGA conversion and final ZIP | Required | Compact power-of-two fill texture, deterministic export, no asset dependency on another add-on, runtime texture included and source art excluded |
+| Login/reload, existing active buff, refresh/extension/expiry, combat/restrictions and overlays | Evidence-gated | Existing native duration and container-only toggle behavior is preserved; focused off-client regressions, actual client behavior still unverified |
+
+The footer gains a worn-gold bar behind the existing icon, name and countdown.
+It drains from full to empty using Blizzard's remaining-duration binding. The
+account-wide Show duration bar preference defaults on; turning it off retains
+the name and timer. Existing scale, position and animation choices are preserved.
+Edit Mode uses the existing labeled 26-second sample, with a matching 26/30 fill.
+
+The text footer and optional bar use the same four-ID native filter. One extra
+native slot keeps the toggle on its container, outside restricted children.
+Blizzard owns the duration, refresh, expiry and no-aura visibility. Add-on code
+does not read aura data, bar values or native visibility, and adds no clock,
+timer, event or OnUpdate handler. Footer text sits above the bar in an explicitly
+ordered foreground frame. The cabinet and symbol artwork, TOC, version and
+interfaces stay unchanged; the new fill is bundled with the add-on.
+
+Build-matched evidence: [CustomAuraButton][button] exposes SetDurationBar and
+passes its opaque duration to SetTimerDuration. [Bar options][baroptions] and
+[bar constants][barconstants] define RemainingTime and Immediate; [status bar
+API][statusbar] defines the widget and styling methods. [Inbound validation][aurautil]
+permits direct children and indirect descendants, so the existing text bindings
+can use the foreground. [Frame providers][provider] initialize artwork before
+applying access restrictions. The installed Wow.exe and .build.info were rechecked
+at 12.1.0.69587; the pinned source version.txt matches the recorded GetBuildInfo.
+Blizzard's [aura announcement][announcement] and linked PTR development notes were
+checked; no later or additional client support is inferred.
+
+| Context or transition | Applicability | Expected behavior and proof boundary |
+| --- | --- | --- |
+| Fresh, existing, corrupt and future SavedVariables; reset and reload | Required | Add/validate only the new boolean, preserve false and unrelated choices, honor read-only future schemas; off-client persistence checks, actual reload unverified |
+| All four ranks, new/renewed buff, same-rank reroll, Keep It Rolling, expiry | Evidence-gated | Full new duration drains leftward; native refresh/extension updates fill with the text; expiry hides the bar; exact-client check required |
+| Login/reload/relog, late load, loading screen or instance/zone change with an already active buff | Evidence-gated | Show the actual remaining fraction, never reset a surviving buff to full or start a cosmetic spin; off-client lifecycle checks plus native client proof |
+| Missing, nil, partial, delayed, stale or replaced aura; bursty updates and recovery | Evidence-gated | Native binding owns newest data; no retained timer or stale fill survives missing buff; exact-client check required |
+| Toggle while editing an active buff, all samples plus idle, repeated open/close, reset | Required | Only the bar changes; name/time remain above it; idle stays empty; exit restores the native bar according to preference; strict off-client and artwork checks, game UI unverified |
+| Animation off, normal animation, changing settings mid-spin | Required | Duration preference is independent of reel motion; no additional OnUpdate or timers; off-client checks and client countdown unverified |
+| Combat entry/sustained/exit, restricted encounter, death/resurrection | Evidence-gated | Native bar continues or clears with native aura; controls close and cannot mutate settings; no restricted-child access, taint or blocked actions; exact client unverified |
+| Spec/talent/loadout/spellbook eligibility, solo/party/raid and open world/dungeon/raid/delve/scenario/PvP | Evidence-gated | Existing eligibility and native aura ownership govern availability; returns without reload or invented duration; off-client eligibility checks, gameplay unverified |
+| Vehicle/taxi/override/possess, hidden UI, pet battle, cinematic/movie/cutscene | Evidence-gated | Existing hide/recovery behavior preserved; no protected action integration or stale countdown on return; off-client supported overlay events, exact client unverified |
+| Quest dialogue/talking head/Settings overlapping the footer | Evidence-gated | Decorative bar accepts no mouse input; existing tooltip and controls remain usable; native layering/input check required |
+| 60%, 100%, 180%, UI scale/resolution, manager/frame readiness and recreation | Required | Name and timer remain legible above full/partial/empty fill; no duplicate widgets or editor controls; authored preview and construction checks, native rendering unverified |
+| Repeated transitions and representative long session | Required | Stable frame/slot/event/timer counts; no work from a disabled bar container; off-client bounds plus native endurance unverified |
+| Charges, cooldown resets, target/focus/mouseover/boss/arena/nameplate/pet units, equipment/stance/form | Not applicable as separate inputs | Bar consumes only the existing player aura filter and eligibility; no charge, cooldown, other-unit, equipment, stance or form queries |
 
 ### Cast-timed lighting contract and proof matrix
 
@@ -43,8 +111,8 @@ Non-winning reels keep their normal brightness throughout the flash.
 Each of three reels has four native singleton aura slots filtering the rank spell
 IDs independently. One footer slot accepts all four IDs and binds the actual icon,
 localized name and duration text. Four additional singleton slots select prebuilt
-win underlays: 17 slots across eight containers. Blizzard selects both the symbols
-and the matching lighting. Add-on Lua never reads the active rank, aura values,
+win underlays. The optional duration bar adds a slot, for 18 across nine containers.
+Blizzard selects both the symbols and the matching lighting. Add-on Lua never reads the active rank, aura values,
 slot visibility or restricted child widgets.
 
 Each rank has an ordinary animation owner containing its native underlay display
@@ -70,7 +138,7 @@ are assigned during setup; no native child is queried or modified afterward.
 The decorative light buttons disable mouse input so they cannot cover existing
 tooltips or intercept clicks while their outer alpha is zero.
 
-All 17 native slots use only CustomAuraButtonTemplate. The rejected prototype's
+All 18 native slots use only CustomAuraButtonTemplate. The rejected prototype's
 AnimateWhileShownTemplate and visibility animation-group templates remain absent.
 Those paths caused the reported secret-visibility error and unknown Show/Hide
 method warnings. The user subsequently reported no errors with the preview-only
@@ -175,8 +243,8 @@ hide and recovery; only new accepted rolls change it. Preview changes restore
 the previous live indices on exit. Initial indices are 1,1,2; reload does not
 persist cosmetic randomness or start a false spin. Random repeats are allowed.
 
-The target build, TOC, settings, schema and vertical motion timings are unchanged.
-The display now has 17 native slots/eight containers. All symbol foregrounds and
+The target build, TOC, schema and vertical motion timings are unchanged.
+The display now has 18 native slots/nine containers, including the optional duration bar. All symbol foregrounds and
 native/sample underlays are prebuilt. Four finite groups use 32 alpha phases on
 ordinary owners, with no per-spin construction or per-frame randomization. Their actual client memory/rendering
 cost remains a profiling gate. Consolidation reduces the runtime TGAs from three to
@@ -187,7 +255,7 @@ gates still apply; artwork is not combat evidence.
 Core owns display availability, EditMode owns its selection/drag/preview session,
 Machine owns cosmetic animation, and Config owns account-wide durable choices.
 The editor uses native selection and guide templates with an owned floating
-settings panel. Scale, position and animation save immediately. No native layout
+settings panel. Scale, position, animation and duration-bar preference save immediately. No native layout
 registration, Save/Cancel persistence, slash commands or AddOns Settings category
 is used. Future saved schemas remain untouched and use read-only runtime defaults.
 
@@ -363,6 +431,10 @@ not permission to reproduce its restricted operations in add-on Lua.
 [container]: https://github.com/Gethe/wow-ui-source/blob/8ea15b61e45c0ed4eba01439c90757f86eb78d34/Interface/AddOns/Blizzard_AuraContainer/Blizzard_CustomAuraContainer.lua
 [filters]: https://github.com/Gethe/wow-ui-source/blob/8ea15b61e45c0ed4eba01439c90757f86eb78d34/Interface/AddOns/Blizzard_AuraContainer/Blizzard_AuraContainerUtil.lua
 [button]: https://github.com/Gethe/wow-ui-source/blob/8ea15b61e45c0ed4eba01439c90757f86eb78d34/Interface/AddOns/Blizzard_AuraContainer/Blizzard_CustomAuraButton.lua
+[baroptions]: https://github.com/Gethe/wow-ui-source/blob/8ea15b61e45c0ed4eba01439c90757f86eb78d34/Interface/AddOns/Blizzard_APIDocumentationGenerated/AuraContainerUtilDocumentation.lua
+[barconstants]: https://github.com/Gethe/wow-ui-source/blob/8ea15b61e45c0ed4eba01439c90757f86eb78d34/Interface/AddOns/Blizzard_APIDocumentationGenerated/SimpleStatusBarConstantsDocumentation.lua
+[statusbar]: https://github.com/Gethe/wow-ui-source/blob/8ea15b61e45c0ed4eba01439c90757f86eb78d34/Interface/AddOns/Blizzard_APIDocumentationGenerated/SimpleStatusBarAPIDocumentation.lua
+[aurautil]: https://github.com/Gethe/wow-ui-source/blob/8ea15b61e45c0ed4eba01439c90757f86eb78d34/Interface/AddOns/Blizzard_AuraContainer/Blizzard_AuraContainerUtil.lua
 [provider]: https://github.com/Gethe/wow-ui-source/blob/8ea15b61e45c0ed4eba01439c90757f86eb78d34/Interface/AddOns/Blizzard_AuraContainer/Blizzard_AuraContainerFrameProviders.lua
 [intrinsic]: https://github.com/Gethe/wow-ui-source/blob/8ea15b61e45c0ed4eba01439c90757f86eb78d34/Interface/AddOns/Blizzard_AuraContainer/Blizzard_AuraButton.xml
 [lifecycle]: https://github.com/Gethe/wow-ui-source/blob/8ea15b61e45c0ed4eba01439c90757f86eb78d34/Interface/AddOns/Blizzard_AuraContainer/Blizzard_AuraContainer.lua
@@ -412,23 +484,32 @@ Base-duration data is not used to time live buffs.
 
 ## Local verification
 
+- Original-gold follow-up on 2026-09-04: removed the 0.62 RGB darkening multiplier. All 49 off-client Lua tests, Art.lua syntax and git diff --check pass. Browser inspection covered Double Trouble at 100% and One of a Kind at 60%/180%, including full, partial, empty and disabled compositions across the views; original gold is brighter and overlaid text remains readable with substitute browser fonts. Browser warnings/errors were empty. PNG/TGA hashes remain unchanged. The rebuilt 14-file ZIP passed archive path and source-hash verification, SHA256 C8F80DE91979E8D79FB504DAE4B38DFEF4C88E564210515A07807C23CA1173A0. Native appearance and existing timing/restricted-context cases remain unverified on Retail live 12.1.0.69587 / Interface 120100
+- Prior appearance-refinement ZIP before removing the darkening tint: 14 allowlisted files under RollTheBonesSlots/, with archived source hashes verified and all three runtime textures included. SHA256 3A8094BB605128750D5DE2CDB27A91E76E79DCEF95C8840D9B4F339C661E794F. That revision passed 49 off-client Lua tests, 11 art export checks, 28 isolated package checks, all eight TOC Lua syntax checks, canonical export verification and git diff --check. Built without installation or upload; exact-package client checks remain unverified on Retail live 12.1.0.69587 / Interface 120100
+- Appearance refinement on 2026-09-04: the built-in imagegen tool produced a 1774x887 opaque worn-gold source, retained unmodified as art/duration-fill.png. The exporter fits it to a 1024x128, top-left BGRA32 runtime strip. Eleven isolated art checks verify both old atlases pixel-for-pixel, the compact fill dimensions, opaque edges and retained quadrants, and read-only rejection of altered or missing exports. The cabinet and symbols remain byte-identical to the prior runtime assets
+- The updated actual-Lua browser preview used the exported fill pixels and authored tint. Inspected Double Trouble and Triple Threat at 100%, One of a Kind at 180% and Jackpot at 60%, plus idle. Full, half, low, zero and disabled sample compositions were covered across these views; the icon stays inside the row, the fill reaches its inner edges, labels remain above it and idle has no bar. Browser warnings/errors were empty. These are authored samples using substitute browser fonts/icons, not native aura timing or exact-client proof
+- Prior duration-bar development ZIP before the appearance refinement: 13 allowlisted files under RollTheBonesSlots/, with every archived source hash verified. SHA256 6E8F15BD660FB8606DFA94C304740DEFB70A3890A2AFE1F9389E87C14002EF53. Built locally without game installation or publication
+- Optional duration bar: 49 off-client tests pass. Coverage checks existing/missing/corrupt/future preferences, persistent false, reset, independence from reduced motion, same-filter RemainingTime binding, text above the bar, noninteractive bundled fill, restricted edit rejection and 15 repeated preview/loading/pet-battle/reset cycles without new frames, slots, hooks or timers. The appearance regression checks the 16-unit icon stays strictly inside the full 301-by-26 row and the backing aligns with the bar. Native aura timing and secret behavior are not emulated
+- Browser artwork checks inspected all four ranks plus idle, with full/half/low/empty/disabled fill compositions, and representative 60%/100%/180% scales. Names and countdowns stayed above the fill; disabling retained the labels; idle had no bar. Browser warnings/errors were empty. Game fonts, real aura selection and native frame layering remain unverified
+- The initial duration-bar revision passed all eight TOC Lua syntax checks, canonical texture export verification, 27 isolated package checks and git diff --check. It introduced no texture; the subsequent appearance refinement adds the bundled fill
 - Cast-timed under-symbol lighting: 45 off-client tests pass, including native filter/ordinary animation separation, normal/Jackpot schedules, layer order, preserved symbol alpha, same-rank cast replay, duplicate/unreadable input filtering, interruption, reset, reduced motion and bounded repeated rolls. The updated construction test verifies that only winning columns contain flash artwork in both native and preview layouts. The native selection and rendering are not emulated
 - Canonical artwork export verification and 27 isolated package checks passed; the lighting change does not change texture pixels or TOC metadata
 - All eight TOC Lua files passed syntax checks; git diff --check passed
-- Current cast-timed lighting ZIP without non-winning reel darkening: 13 allowlisted runtime/documentation files, with every archived file hash checked against the source. SHA256 B18FE3810AA73ABDE86986136801E0BA2077B8D491727671848A5DB15934437C. No game installation, upload or publication was performed
+- Previous cast-timed lighting ZIP without non-winning reel darkening: 13 allowlisted runtime/documentation files, with every archived file hash checked against the source. SHA256 B18FE3810AA73ABDE86986136801E0BA2077B8D491727671848A5DB15934437C. Superseded by the duration-bar build; no game installation, upload or publication was performed
 - Before removing non-winning reel darkening, an authored browser visual check covered all four result samples plus idle, comparing no light with maximum light. Symbols remained above the glow/dim artwork and retained their color; idle remained unchanged. Browser warning/error logs were empty. This checks the exported sample composition, not native aura selection, alpha inheritance or combat rendering
 
 Browser evidence below was collected with a local-only web harness. Its page,
 server, snapshot exporter and captured frames are not versioned. It reads the
-two canonical PNGs into transparent 1024x1024 canvases in memory, matching the
-runtime UV space without generating duplicate preview images.
+cabinet and symbol PNGs into transparent 1024x1024 canvases in memory, matching
+the runtime UV space. The duration refinement decodes the exported 1024x128 TGA
+to an ignored PNG for browser inspection, preserving every runtime pixel.
 The automated regression suite, art export tests and package checks are retained.
 
 - Prior preview-only error repair: 42 off-client Lua tests, 8 art export checks, 27 package checks and all 8 TOC Lua syntax checks passed
 - Prior regression checks verified all 13 native aura buttons have no add-on script handlers, runtime animation templates or animation groups. Four plain animation groups are confined to ordinary Edit Mode preview frames
 - The art export fixtures compare every source pixel and generated padding pixel against independent RGBA patterns covering all alpha values; fresh -Check is read-only, stale pixel rejection leaves outputs untouched, and missing/wrong-size sources fail
 - Independent asset comparison verified all 851,968 retained RGBA pixels match the pre-consolidation baseline; all 458,752 discarded pixels and 196,608 unused atlas pixels have alpha zero. Minimum per-region transparent padding is 5/7/7/23/24 pixels. Every retained pixel's position matches the baseline at nominal sizes 112 and 22
-- Canonical cabinet.png is 1024x630 and symbols.png is 1024x832. Their retained RGBA pixels match the 1024x1024 predecessors exactly, and every discarded pixel was transparent. Export restores transparent rows through height 1024; both TGAs are byte-identical to the pre-trim runtime files, including headers, orientation and every RGBA pixel. The art directory contains only README.md, cabinet.png and symbols.png; media contains only the two runtime TGAs
+- Canonical cabinet.png is 1024x630 and symbols.png is 1024x832. Their retained RGBA pixels match the 1024x1024 predecessors exactly, and every discarded pixel was transparent. Export restores transparent rows through height 1024; both TGAs are byte-identical to the pre-trim runtime files, including headers, orientation and every RGBA pixel. At consolidation, these were the only two sources and runtime TGAs; the duration appearance refinement adds duration-fill.png and duration-fill.tga
 - Browser inspection covered shared-atlas ordinary results and Jackpot, the sample footer, dim idle, 60%/100%/180% display widths and the 1.23-second landing frame. No sampled horizontal cuts, atlas bleed or changed visible scale were observed; browser warning/error logs were empty. This does not prove native filtering or restricted-client behavior
 - Prior preview-only consolidated-atlas ZIP contains 13 expected files, with every archived source hash verified and all source/obsolete/preview assets excluded. SHA256 40BCEDD6140EFED0CD0A86A4E39796369BF293BBAF8BA2B8248436A00DF66CB6. Built without installation or upload
 
@@ -465,7 +546,7 @@ The automated regression suite, art export tests and package checks are retained
 - Tests load the actual TOC order and add-on varargs; strict stubs reject unexpected calls, direct aura reads and result-child access after initialization
 - Focused snapping checks cover scale conversion, UIParent-only final anchors and restriction interruption; they do not emulate native target selection
 - Packaging checks Interface metadata, exact allowlisted paths/casing, texture headers/dimensions/pixel length and archived source hashes before replacing the generated ZIP
-- Expected current archive: 13 files under RollTheBonesSlots/, comprising eight Lua sources, TOC, README, changelog and two runtime TGA textures
+- Expected current archive: 14 files under RollTheBonesSlots/, comprising eight Lua sources, TOC, README, changelog and three runtime TGA textures
 - Source artwork, tests, screenshots, repository instructions and this validation record are excluded
 - No live-client rendering, taint, restricted encounters or exact-package installation is proven by these checks
 - Version remains dev, schema remains 1; no remote, push, tag, installation or publication

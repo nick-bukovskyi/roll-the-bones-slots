@@ -50,7 +50,7 @@ return function(test, H, loadAddon)
         local ns = loadAddon()
         ns.Config.Initialize(nil); ns.Machine.Initialize()
         local centers, ordinaryRows = 0, 0
-        eq(#H.nativeSlots, 17)
+        eq(#H.nativeSlots, 18)
         for index = 1, 13 do
             local slot = H.nativeSlots[index]
             local button = slot.button
@@ -61,9 +61,9 @@ return function(test, H, loadAddon)
                 end
                 local icon = button.bindings.SetIcon
                 eq(rawget(icon, "texture"), nil)
-                eq(icon.width, 22); eq(icon.height, 22)
+                eq(icon.width, 16); eq(icon.height, 16)
                 eq(icon.points.TOPLEFT[2], "TOPLEFT")
-                eq(icon.points.TOPLEFT[3], 60); eq(icon.points.TOPLEFT[4], -207)
+                eq(icon.points.TOPLEFT[3], 58); eq(icon.points.TOPLEFT[4], -210)
             else
                 local count = 0
                 for _, texture in ipairs(H.reelRegions(button)) do
@@ -121,9 +121,9 @@ return function(test, H, loadAddon)
                     if id then
                         local point = assert(texture.points.CENTER, "authored symbols retain their visual center")
                         local reel = point[2] == "CENTER"
-                        CheckSymbol(texture, id == 5, reel and ns.Art.SymbolSize or 22)
+                        CheckSymbol(texture, id == 5, reel and ns.Art.SymbolSize or 16)
                         if not reel then
-                            eq(point[2], "TOPLEFT"); eq(point[3], 71); eq(point[4], -218)
+                            eq(point[2], "TOPLEFT"); eq(point[3], 66); eq(point[4], -218)
                         end
                         if id == 5 then
                             eq(name, "Jackpot")

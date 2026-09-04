@@ -36,6 +36,33 @@ public static class SlotArtExportFixture {
             if(actual != expected) throw new Exception("Changed RGBA pixel at " + x + "," + y + ": " + path);
         }
     }
+    private static Color FillPixel(int x, int y, int width, int height) {
+        return Color.FromArgb(255, x < width/2 ? 180 : 60, y < height/2 ? 150 : 50, 30);
+    }
+    public static void WriteFill(string path) {
+        using(var image = new Bitmap(1774, 887, PixelFormat.Format32bppArgb)) {
+            for(int y = 0; y < image.Height; y++) for(int x = 0; x < image.Width; x++)
+                image.SetPixel(x, y, FillPixel(x, y, image.Width, image.Height));
+            image.Save(path, ImageFormat.Png);
+        }
+    }
+    public static void AssertFill(string path) {
+        byte[] data = File.ReadAllBytes(path);
+        byte[] header = {0,0,2,0,0,0,0,0,0,0,0,0,0,4,128,0,32,0x28};
+        if(data.Length != 18 + 1024*128*4) throw new Exception("Incorrect compact fill length");
+        for(int index = 0; index < header.Length; index++)
+            if(data[index] != header[index]) throw new Exception("Incorrect compact fill header");
+        for(int y = 0; y < 128; y++) for(int x = 0; x < 1024; x++) {
+            uint actual = BitConverter.ToUInt32(data, 18 + 4*(y*1024 + x));
+            if((actual >> 24) != 255) throw new Exception("Transparent gap in the fitted fill");
+        }
+        // Interior and edge samples prove the entire material fits without cropping or padding
+        foreach(int y in new[]{0, 16, 112, 127}) foreach(int x in new[]{0, 128, 896, 1023}) {
+            uint actual = BitConverter.ToUInt32(data, 18 + 4*(y*1024 + x));
+            uint expected = unchecked((uint)FillPixel(x, y, 1024, 128).ToArgb());
+            if(actual != expected) throw new Exception("Changed fill quadrant at " + x + "," + y);
+        }
+    }
 }
 '@
 
@@ -72,15 +99,19 @@ try {
     $null = New-Item -ItemType Directory -Path $artDirectory
     $cabinetSource = Join-Path $artDirectory 'cabinet.png'
     $symbolsSource = Join-Path $artDirectory 'symbols.png'
+    $fillSource = Join-Path $artDirectory 'duration-fill.png'
     [SlotArtExportFixture]::WritePng($cabinetSource, 1, 1024, 630)
     [SlotArtExportFixture]::WritePng($symbolsSource, 2, 1024, 832)
+    [SlotArtExportFixture]::WriteFill($fillSource)
     & $exportScript -ProjectRoot $fixtureRoot | Out-Null
     $cabinetOutput = Join-Path $mediaDirectory 'cabinet.tga'
     $symbolsOutput = Join-Path $mediaDirectory 'symbols.tga'
+    $fillOutput = Join-Path $mediaDirectory 'duration-fill.tga'
     [SlotArtExportFixture]::AssertTga($cabinetOutput, 1, 630)
     [SlotArtExportFixture]::AssertTga($symbolsOutput, 2, 832)
-    $checks += 2
-    if (@(Get-ChildItem -LiteralPath $mediaDirectory -File).Count -ne 2) {
+    [SlotArtExportFixture]::AssertFill($fillOutput)
+    $checks += 3
+    if (@(Get-ChildItem -LiteralPath $mediaDirectory -File).Count -ne 3) {
         throw 'Export created unexpected runtime textures'
     }
     $checks++
@@ -99,6 +130,19 @@ try {
     [IO.File]::WriteAllBytes($symbolsOutput, $staleSymbols)
     Assert-ExportCheckRejected 'altered output pixel' 'Stale texture export'
     [IO.File]::WriteAllBytes($symbolsOutput, $freshSymbols)
+    $checks++
+
+    $freshFill = [IO.File]::ReadAllBytes($fillOutput)
+    $staleFill = [byte[]]$freshFill.Clone()
+    $staleFill[22] = $staleFill[22] -bxor 1
+    [IO.File]::WriteAllBytes($fillOutput, $staleFill)
+    Assert-ExportCheckRejected 'altered compact fill' 'Stale texture export'
+    [IO.File]::WriteAllBytes($fillOutput, $freshFill)
+    $checks++
+
+    Remove-Item -LiteralPath $fillOutput
+    Assert-ExportCheckRejected 'missing compact fill export' ''
+    [IO.File]::WriteAllBytes($fillOutput, $freshFill)
     $checks++
 
     # Missing sources are rejected rather than silently accepting an old export

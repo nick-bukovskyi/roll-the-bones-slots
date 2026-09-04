@@ -2,8 +2,9 @@
 local _, ns = ...
 local Machine = {}
 ns.Machine = Machine
-local frame, previewLabel
+local frame, previewLabel, durationDisplay
 local samples, reels, displays = {}, {}, {}
+local sampleBars = {}
 local effects = {}
 local previewIndex, previewActive = 2, false
 local elapsed = 0
@@ -122,9 +123,14 @@ function Machine.SetPresentation(visible, preview)
         display:SetEnabled(visible and not preview)
         display:SetShown(visible and not preview)
     end
+    local showBar = ns.Config.GetDurationBarEnabled()
+    local showLiveBar = visible and not preview and showBar
+    durationDisplay:SetEnabled(showLiveBar)
+    durationDisplay:SetShown(showLiveBar)
     for index, sample in ipairs(samples) do
         local shown = preview and index == previewIndex
         sample:SetShown(shown)
+        sampleBars[index]:SetShown(showBar)
         effects[index].preview:SetShown(shown)
         for _, reel in ipairs(reels) do reel.samples[index]:SetShown(shown) end
     end
@@ -170,10 +176,13 @@ function Machine.Initialize()
     for index, effect in ipairs(effects) do
         displays[#displays + 1] = ns.Game.CreateWinDisplay(effect.owner, ns.Game.Results[index], ns.Art.WinResult)
     end
+    -- Toggle only the container; never retain or mutate its restricted bar
+    durationDisplay = ns.Game.CreateFooterDisplay(frame, ns.Art.NativeDurationBar)
     for index, definition in ipairs(ns.Game.Results) do
         local sample = CreateFrame("Frame", nil, frame)
         sample:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, 0)
-        ns.Art.Footer(sample, definition)
+        local _, _, _, bar = ns.Art.Footer(sample, definition)
+        sampleBars[index] = bar
         sample:Hide()
         samples[index] = sample
     end

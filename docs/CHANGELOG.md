@@ -4,6 +4,7 @@
 
 ### Added
 
+- A gold duration bar behind the buff name and countdown drains as the buff expires; toggle Show duration bar in Edit Mode
 - A treasure-chest slot display with distinct symbols for each Roll the Bones result, plus its name, icon and remaining time
 - Short reel spins that finish by rolling the actual result symbols into place one after another
 - Roll the Bones casts now flash the displayed winning reels twice after landing, with three stronger pulses for Jackpot; Test spin previews the same effect
@@ -14,6 +15,7 @@
 
 ### Changed
 
+- The duration bar now fills the entire footer row with brighter worn-gold artwork, and its smaller buff icon sits inside with padding
 - Only winning reels flash, with the light behind their symbols; non-winning reels keep their normal brightness
 - One of a Kind and Double Trouble now vary their non-winning symbols between rolls, including when animation is disabled; winning dice and Jackpot chests stay unchanged
 - Jackpot now shows three exclusive treasure chests; rum bottles remain ordinary reel symbols
@@ -33,6 +35,7 @@
 
 ### Known Issues
 
+- Duration-bar timing, refreshes and readability still need in-game verification on Retail 12.1.0.69587
 - Live win lighting, its placement behind symbols and the existing full result, idle and Edit Mode checks still need in-game verification on Retail 12.1.0.69587
 - Same-rank rerolls also flash; Keep It Rolling and other duration updates do not start a celebration
 - Win flashes follow a fixed cast schedule; a delayed buff update may briefly highlight the previous result or change the lighting during a pulse

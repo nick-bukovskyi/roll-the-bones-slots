@@ -93,11 +93,11 @@ try {
     $validTga[14] = 4
     $validTga[16] = 32
     $validTga[17] = 8
-    foreach ($name in @('cabinet.tga', 'symbols.tga')) {
+    foreach ($name in @('cabinet.tga', 'symbols.tga', 'duration-fill.tga')) {
         [IO.File]::WriteAllBytes((Join-Path $fixtureMediaDirectory $name), $validTga)
     }
     $expectedPaths = @('RollTheBonesSlots.toc', 'README.md', 'docs/CHANGELOG.md', 'src/Main.lua', `
-        'media/cabinet.tga', 'media/symbols.tga')
+        'media/cabinet.tga', 'media/symbols.tga', 'media/duration-fill.tga')
     foreach ($interface in @('123456', '654321')) {
         Set-Content -LiteralPath $fixtureToc -Value @("## Interface: $interface", '## Version: fixture', 'src\Main.lua')
         & $fixtureScript | Out-Null
@@ -125,7 +125,7 @@ try {
 
     # Invalid assets fail before replacing a known-good ZIP or leaving temporary output
     $previousHash = (Get-FileHash -LiteralPath $existingArchive -Algorithm SHA256).Hash
-    foreach ($name in @('cabinet.tga', 'symbols.tga')) {
+    foreach ($name in @('cabinet.tga', 'symbols.tga', 'duration-fill.tga')) {
         $assetPath = Join-Path $fixtureMediaDirectory $name
         $omittedPath = Join-Path $fixtureMediaDirectory "$name.omitted"
         Move-Item -LiteralPath $assetPath -Destination $omittedPath

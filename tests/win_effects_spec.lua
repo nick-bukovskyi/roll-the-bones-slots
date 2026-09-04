@@ -31,7 +31,7 @@ return function(test, H, loadAddon)
 
     test("native and preview flashes light only winning columns below the symbols", function()
         local ns = login()
-        eq(#H.nativeSlots, 17); eq(#H.animationGroups, 4)
+        eq(#H.nativeSlots, 18); eq(#H.animationGroups, 4)
         for _, slot in ipairs(H.nativeSlots) do
             eq(next(slot.button.scripts), nil); eq(rawget(slot.button, "animationGroups"), nil)
             eq(rawget(slot, "templateNames"), nil); eq(slot.button.sealed, true)
@@ -134,7 +134,7 @@ return function(test, H, loadAddon)
         local widgets, textures, hooks = #H.widgets, H.textureWrites, H.hookCount
         for index = 1, 20 do cast("repeat" .. index); H.advance(3.2) end
         eq(#H.widgets, widgets); eq(H.textureWrites, textures); eq(H.hookCount, hooks)
-        eq(#H.timers, 0); eq(#H.nativeSlots, 17); quiet()
+        eq(#H.timers, 0); eq(#H.nativeSlots, 18); quiet()
     end)
 
     test("preview picks one timeline and reset or reduced motion cancels pending lights", function()

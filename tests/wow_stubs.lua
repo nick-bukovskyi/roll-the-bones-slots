@@ -187,6 +187,29 @@ function H.install()
         check(self); assert(type(value) == "number"); self.value = value
         local callback = self.callbacks.OnValueChanged; if callback then callback.fn(callback.owner, value) end
     end
+    function methods:SetMinMaxValues(minimum, maximum, ...)
+        check(self); H.eq(self.kind, "StatusBar"); H.eq(select("#", ...), 0)
+        assert(type(minimum) == "number" and type(maximum) == "number" and maximum >= minimum)
+        self.minimum, self.maximum = minimum, maximum
+    end
+    function methods:SetOrientation(value)
+        check(self); H.eq(self.kind, "StatusBar"); H.eq(value, "HORIZONTAL"); self.orientation = value
+    end
+    function methods:SetFillStyle(value)
+        check(self); H.eq(self.kind, "StatusBar"); H.eq(value, Enum.StatusBarFillStyle.Standard); self.fillStyle = value
+    end
+    function methods:SetStatusBarTexture(texture, ...)
+        check(self); H.eq(self.kind, "StatusBar"); H.eq(select("#", ...), 0)
+        check(texture); H.eq(texture.kind, "Texture"); H.eq(texture.parent, self)
+        self.fill = texture
+        return true
+    end
+    function methods:SetStatusBarColor(r, g, b, a, ...)
+        check(self); H.eq(self.kind, "StatusBar"); H.eq(select("#", ...), 0)
+        assert(type(r) == "number" and type(g) == "number" and type(b) == "number")
+        assert(a == nil or type(a) == "number")
+        self.statusBarColor = { r, g, b, a or 1 }
+    end
     function methods:RegisterCallback(event, fn, owner)
         check(self); H.eq(event, "OnValueChanged"); assert(type(fn) == "function" and type(owner) == "table")
         assert(not self.callbacks[event], "duplicate widget callback"); self.callbacks[event] = { fn = fn, owner = owner }
@@ -238,8 +261,25 @@ function H.install()
     function methods:SetToFinalAlpha(value) check(self); H.eq(self.kind, "AnimationGroup"); H.eq(value, true); self.toFinalAlpha = value end
     function methods:Play() check(self); H.eq(self.kind, "AnimationGroup"); playGroup(self) end
     function methods:Stop() check(self); H.eq(self.kind, "AnimationGroup"); stopGroup(self, false) end
-    for _, method in ipairs({ "SetIcon", "SetSpellName", "SetDurationText" }) do
-        methods[method] = function(self, region) check(self); assert(region.parent == self); self.bindings[method] = region end
+    local function bindRegion(button, region, kind)
+        check(button); check(region); H.eq(button.kind, "AuraButton"); H.eq(region.kind, kind)
+        local ancestor = region.parent
+        while ancestor and ancestor ~= button do ancestor = ancestor.parent end
+        H.eq(ancestor, button)
+    end
+    for method, kind in pairs({ SetIcon = "Texture", SetSpellName = "FontString", SetDurationText = "FontString" }) do
+        methods[method] = function(self, region, ...)
+            H.eq(select("#", ...), 0); bindRegion(self, region, kind); self.bindings[method] = region
+        end
+    end
+    function methods:SetDurationBar(bar, options, ...)
+        H.eq(select("#", ...), 0); bindRegion(self, bar, "StatusBar")
+        H.eq(options.direction, Enum.StatusBarTimerDirection.RemainingTime)
+        H.eq(options.interpolation, Enum.StatusBarInterpolation.Immediate)
+        for key in pairs(options) do assert(key == "direction" or key == "interpolation") end
+        H.eq(next(bar.scripts), nil)
+        self.bindings.SetDurationBar = bar
+        self.durationBarOptions = { direction = options.direction, interpolation = options.interpolation }
     end
     function methods:AddAuraSlot(key, filter, options)
         check(self); assert(type(key) == "string"); H.eq(filter, "HELPFUL")
@@ -269,7 +309,7 @@ function H.install()
     _G.CreateFrame = function(kind, name, parent, template)
         assert(name == nil and (parent == nil or type(parent) == "table"))
         if parent then check(parent) end
-        if template then H.eq(templates[template], kind) else H.eq(kind, "Frame") end
+        if template then H.eq(templates[template], kind) else assert(kind == "Frame" or kind == "StatusBar") end
         local value = object(kind, parent, template); table.insert(H.frames, value); return value
     end
     _G.UIParent = object("Frame", nil); UIParent.width, UIParent.height = 1920, 1080
@@ -277,6 +317,8 @@ function H.install()
         assert(type(r) == "number" and type(g) == "number" and type(b) == "number" and type(a) == "number")
         return { GetRGBA = function() return r, g, b, a end }
     end
+    _G.Enum = { StatusBarFillStyle = { Standard = 0 }, StatusBarTimerDirection = { RemainingTime = 1 },
+        StatusBarInterpolation = { Immediate = 0 } }
     _G.issecretvalue = function(...) H.eq(select("#", ...), 1); return rawequal((...), secret) end
     _G.canaccesstable = function(...) H.eq(select("#", ...), 1); return not rawequal((...), secret) end
     _G.GetBuildInfo = function() return H.version, H.build, "Sep 3 2026", 120100 end

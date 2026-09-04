@@ -17,6 +17,7 @@ end
 local function test(name, fn) tests[#tests + 1] = { name, fn } end
 local ns = loadAddon()
 dofile("tests/config_spec.lua")(test, ns, harness)
+dofile("tests/duration_bar_spec.lua")(test, harness, loadAddon)
 dofile("tests/lifecycle_spec.lua")(test, harness, loadAddon)
 dofile("tests/native_results_spec.lua")(test, harness, loadAddon)
 dofile("tests/win_effects_spec.lua")(test, harness, loadAddon)

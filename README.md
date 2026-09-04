@@ -2,6 +2,8 @@
 
 A small treasure-chest slot machine for Outlaw Rogue. Its three reels show your
 Roll the Bones rank, with the real buff name, icon and remaining time below them.
+An optional worn-gold bar fills the footer row behind the name and timer and
+drains as the buff expires. Its smaller buff icon sits inside with padding.
 Cast using your normal action buttons.
 
 ## Development build for testing
@@ -32,14 +34,16 @@ project does not install itself, change CVars or edit your existing player data.
   to align with its grid and eligible Blizzard UI elements.
 - Adjust **Display scale** with the slider or percentage field, from 60% to 180%.
 - Turn off **Animate reels and wins** for reduced motion.
+- Toggle **Show duration bar** to show or hide the gold countdown bar while keeping
+  the buff name and remaining time visible. This is independent of reel animation.
 - Use **Test spin** to cycle through the four labeled sample results and an idle sample.
   With animation enabled, result samples also preview the lighting behind the symbols.
-- Use **Reset to Defaults** to restore position, scale and animation preferences.
+- Use **Reset to Defaults** to restore position, scale, animation and duration-bar preferences.
 
 Changes save immediately and apply account-wide. They are not tied to a Blizzard
 layout, and Blizzard's Save or Cancel buttons do not commit or undo these choices.
-The default is 100% scale below screen center, with animation enabled. There are
-no add-on slash commands or AddOns Settings category.
+The default is 100% scale below screen center, with animation and the duration bar
+enabled. There are no add-on slash commands or AddOns Settings category.
 
 Editing is unavailable during combat and restricted encounters. A restriction
 interrupts dragging and closes the controls. Edit Mode shows samples only; the
@@ -98,6 +102,10 @@ Jackpot-specific sounds, reroll advice, history and chat messages are not includ
 ## First gameplay checks
 
 - Compare all four settled results and timers with Blizzard's buff display
+- Check that the gold bar drains from full to empty, updates on rerolls and Keep It
+  Rolling, and disappears at expiry; reload with a buff active to check its remaining fill
+- Toggle Show duration bar and reset it in Edit Mode; verify the name and timer stay
+  readable at 60%, 100% and 180%, with animation both enabled and disabled
 - Watch each actual result roll into its final center, with no jump or clipped edge
 - Check the third reel's lower symbols throughout landing; no internal moving edge should cut them
 - Try repeated same-rank and different-rank rolls, duration extensions and expiry
@@ -135,10 +143,11 @@ lua tests/runner.lua
 ./scripts/package.ps1
 ```
 
-The authoritative artwork is `art/cabinet.png` and the five-icon atlas
-`art/symbols.png`. The exporter copies these tightly bounded PNGs into two
-transparent 1024x1024 runtime TGAs so WoW receives power-of-two textures;
-`-Check` rejects stale pixels or padding without changing files. See
+The authoritative artwork is `art/cabinet.png`, the five-icon atlas
+`art/symbols.png` and `art/duration-fill.png`. The exporter copies the cabinet and
+symbols into transparent 1024x1024 runtime TGAs and fits the generated worn-gold
+material to a compact 1024x128 TGA. All three textures ship with this add-on;
+none come from another add-on. `-Check` rejects stale exports without changing files. See
 [art/README.md](art/README.md) for the atlas rectangles and editing workflow.
 
 Tests load files in TOC order with add-on varargs and strict API stubs. They do not

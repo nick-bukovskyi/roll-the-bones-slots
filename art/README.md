@@ -4,6 +4,7 @@
 
 - `cabinet.png`: finished transparent 1024x630 cabinet
 - `symbols.png`: finished transparent 1024x832 atlas containing all five reel symbols
+- `duration-fill.png`: opaque 1774x887 generated worn-gold material for the duration bar
 - `README.md`: this layout and editing guide
 
 Edit these PNGs directly. They are the only artwork inputs. The old generation
@@ -18,6 +19,11 @@ as required by [current custom-texture guidance](https://warcraft.wiki.gg/wiki/A
 out of the editable artwork. Every source pixel is unchanged and every generated
 padding pixel is transparent. The local browser creates the same square runtime
 canvas in memory from the canonical PNGs.
+`../media/duration-fill.tga` is fitted from the entire opaque gold material to a
+1024x128 strip with bicubic resampling and mirrored edge pixels, without cropping or
+padding. The fill has no end caps so any remaining percentage displays naturally.
+The fill displays its original gold colors at full opacity, without a darkening tint.
+It is bundled artwork, with no asset dependency on another add-on.
 Temporary preview HTML and frame snapshots live under `../artifacts/preview/`
 and are excluded from Git and the player package.
 
@@ -52,19 +58,37 @@ The native buff footer continues to use Blizzard's icon.
    transparent gutters and the other symbols. Do not recreate a source-sheet overlay chain.
 2. Run `pwsh -NoProfile -File scripts/export-art.ps1` from the repository root.
    The exporter copies the PNG pixels to an uncompressed BGRA32 TGA with top-left
-   origin, then adds transparent bottom rows to reach the required 1024x1024
-   runtime size. It does not key backgrounds, crop or resize artwork, relocate
-   icons or modify the PNGs.
+   origin. Cabinet and symbols retain every source pixel, with transparent bottom
+   rows to reach 1024x1024. Only the duration-fill material is resized to its
+   1024x128 runtime strip. The exporter does not key backgrounds, crop artwork,
+   relocate icons or modify the PNGs.
 3. Run `pwsh -NoProfile -File scripts/export-art.ps1 -Check` to reject missing or
    stale runtime exports without changing files.
 4. Run the Lua, art-export and package checks, then build the development ZIP.
    Commit the canonical PNGs and their matching runtime exports together when committing is authorized.
 
 All five symbols use one 4 MiB texture instead of the previous 4 MiB atlas plus
-1 MiB chest texture. The cabinet stays at 4 MiB. These are uncompressed pixel
+1 MiB chest texture. The cabinet stays at 4 MiB; the duration fill adds 0.5 MiB.
+These are uncompressed pixel
 payloads, not a measured GPU-memory or frame-rate improvement.
 
 ## Artwork provenance
+
+The duration fill was generated with the built-in imagegen tool on 2026-09-04,
+using `cabinet.png` only as a style/material reference. The untouched generated
+output is saved as `art/duration-fill.png`; `scripts/export-art.ps1` prepares
+`media/duration-fill.tga`. The tool returned a 1774x887 image, which the exporter
+fits to the requested horizontal strip. Final generation prompt:
+
+```text
+Use case: stylized-concept
+Asset type: production texture for the horizontal duration-bar fill of a hand-painted Warcraft-style pirate treasure-chest UI.
+The referenced image is a STYLE AND MATERIAL REFERENCE ONLY: match its antique brass, worn gold, softly irregular painterly surface and dark warm edges. Do not reproduce the cabinet, its frame, its symbols, or its composition.
+Create exactly ONE seamless horizontal bar-fill material, edge to edge across the ENTIRE image. Desired final canvas is 1024 pixels wide by 128 pixels high, an 8:1 horizontal strip. There must be NO margin, NO black void, NO separate background, and NO external frame. All pixels are opaque textured metal. If a taller canvas is necessary, extend the same bar material edge to edge across that canvas rather than placing a narrow strip inside an empty canvas.
+A restrained, richly hand-painted aged gold/brass surface, fine horizontal brushed striations, faint hammering, soft irregular scuffs, a few tiny worn scratches, subtle darker ochre flecks. Warm muted highlights in the upper quarter, a darker warm bronze lower edge to suggest gently rounded metal. The central surface must be medium-dark antique gold so bright yellow buff-name text and white countdown text laid over it later remain easy to read. Keep left and right edges visually consistent with the center so clipping the fill at any percentage looks natural.
+Must feel like a small polished-but-weathered insert built into the reference pirate slot machine. Readable subtle texture at about 300 by 24 UI pixels. Soft painterly material detail, tasteful controlled contrast, no glitter.
+No text or typography, no numbers, no icons, no gems, no skulls, no coins, no ornament or diagonal stripes, no rivets, no border/caps, no checkerboard, no transparency, no vignette at the left or right, no bloom or glow, no glossy plastic, no photograph, no watermark.
+```
 
 The cabinet and icons were generated with built-in imagegen on 2026-09-04 and
 approved through iterative previews. Consolidation performs no new generation.
