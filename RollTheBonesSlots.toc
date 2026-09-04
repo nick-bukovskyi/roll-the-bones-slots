@@ -1,0 +1,16 @@
+## Interface: 120100
+## Title: Roll the Bones Slots
+## Notes: A small casino display for your Outlaw Roll the Bones result and remaining time
+## Author: Sonterix
+## Version: dev
+## SavedVariables: RollTheBonesSlotsDB
+## RequiredDeps: Blizzard_AuraContainer
+
+src\Config.lua
+src\Game.lua
+src\Art.lua
+src\Machine.lua
+src\EditModeSnap.lua
+src\Settings.lua
+src\EditMode.lua
+src\Core.lua
