@@ -1,8 +1,10 @@
 # Development validation
 
-Status: **Implemented, Unverified**. Source and off-client checks do not establish
-release readiness. No live-client installation, game control, CVar changes or real
-SavedVariables edits were performed for this revision.
+Status: **Implemented, Unverified** for cast-timed lighting behind the result symbols.
+The user confirmed no in-game errors with the preceding preview-only repair.
+Source and off-client checks do not establish release readiness. No live-client
+installation, game control, CVar changes or real SavedVariables edits were performed
+for this repair.
 
 ## Target and evidence
 
@@ -15,12 +17,69 @@ SavedVariables edits were performed for this revision.
 
 ## Behavior and ownership
 
+### Cast-timed lighting contract and proof matrix
+
+The approved change flashes the currently displayed rank after a readable Roll the
+Bones cast, including same-rank rerolls. It does not confirm result arrival. Keep It
+Rolling, aura updates alone and UI restoration do not start a celebration. Normal
+ranks use two pulses and Jackpot three stronger pulses. Only winning reels receive
+lighting, above the opaque backing and below the unchanged symbol textures.
+Non-winning reels keep their normal brightness throughout the flash.
+
+| Context / transition | Applicability | Expected behavior and proof boundary |
+| --- | --- | --- |
+| Retail live 12.1.0.69587 / 120100, login/reload/relog with or without an aura | Evidence-gated | Native slots initialize without visibility scripts; existing buffs return without a flash; exact-package client check |
+| All four ranks, same-rank rerolls, Keep It Rolling, failure, unreadable cast and duplicate cast GUID | Required | Every accepted Roll starts one fixed timeline; no other input starts it; strict off-client event tests plus client rank selection |
+| Ordinary / Jackpot timings, under-symbol lighting, idle, every cosmetic lane and 60%/100%/180% scale | Required | Two / three pulses begin after the 1.5-second landing; icons keep their original alpha above every light region; no-buff native glow stays absent; construction and authored preview checks plus in-game rendering |
+| One of a Kind, Double Trouble, Triple Threat and Jackpot in live and preview layouts | Required | Only columns 1, 1+2, all three and all three respectively contain flash artwork; non-winning columns have no lighting or darkening overlay; strict construction checks cover both layouts, actual brightness remains an in-game check |
+| Delayed, replaced, partial or expired aura during a flash; rapid rolls and event bursts | Evidence-gated | Blizzard selects current artwork independently; late changes may highlight the previous result or switch mid-flash; newest cast replaces the old timeline without queued timers |
+| Animation off, reset, preview switch, Edit Mode exit, hidden UI, cinematic/movie/pet battle and loading screen | Required | Cancel spin and all lights, reset ordinary alpha and resume quietly; lifecycle tests and exact-client transitions |
+| Combat entry, sustained combat, exit, restricted encounter, death/resurrection, vehicle/taxi/override UI | Evidence-gated | Only readable cast input drives ordinary animation parents; no native child read/mutation after setup; verify clipping, taint/errors and recovery in target client |
+| Spec/talent/loadout/spellbook changes, solo/party/raid and relevant dungeon/raid/delve/PvP content | Evidence-gated | Existing availability/native aura ownership remains authoritative; presentation refreshes do not replay flashes; restored availability stays quiet |
+| Cooldown/charge resets, target/focus/mouseover/pet/equipment changes | Not applicable as independent triggers | No cooldown, charge or other-unit input controls lighting; only an accepted player Roll cast starts it, with existing specialization/spell-known availability |
+| Repeated editing/rolls and representative long session, scale/resolution changes | Required | Reuse all groups/slots, no timers or per-roll construction; stop cleanly and preserve settings; off-client bounds plus native endurance |
+
+
 Each of three reels has four native singleton aura slots filtering the rank spell
-IDs independently. One additional footer slot accepts all four IDs and binds the
-actual icon, localized name and duration text: 13 slots across four containers.
-Blizzard selects which preconfigured rank artwork is visible. Add-on Lua never
-reads the active rank, aura values, slot visibility or restricted child widgets.
-Native aura updates remain authoritative for rerolls, extensions and expiry.
+IDs independently. One footer slot accepts all four IDs and binds the actual icon,
+localized name and duration text. Four additional singleton slots select prebuilt
+win underlays: 17 slots across eight containers. Blizzard selects both the symbols
+and the matching lighting. Add-on Lua never reads the active rank, aura values,
+slot visibility or restricted child widgets.
+
+Each rank has an ordinary animation owner containing its native underlay display
+and a separate Edit Mode sample. A readable Roll cast starts all four finite
+timelines, regardless of the native selection. Only Blizzard's selected artwork
+can appear. Preview starts only the selected sample timeline. There are no aura
+callbacks, new cast events, timers, native animation groups or visibility handlers.
+
+The normal timeline starts after 1.50 seconds and finishes after 2.46 seconds;
+Jackpot finishes after 3.11 seconds. Alpha phases target only each ordinary owner,
+never the native slots or their descendants. One of a Kind, Double Trouble and
+Triple Threat pulse twice, with non-winning reels left unchanged. Jackpot
+pulses three times with increasing strength and a longer final hold. All timelines
+end at zero alpha. Cancellation stops the groups and explicitly resets owner alpha;
+natural reel settlement leaves the pending lighting running. Reset to Defaults,
+reduced motion and display/preview interruption use the cancellation path.
+
+At construction, rank symbol textures move into a script-free foreground child
+above the lighting branches. Their texture, UVs, position and opacity are unchanged.
+Native opaque backing stays below the lighting and still covers the dim idle art.
+Every native/preview light region is below the rank foregrounds. All levels
+are assigned during setup; no native child is queried or modified afterward.
+The decorative light buttons disable mouse input so they cannot cover existing
+tooltips or intercept clicks while their outer alpha is zero.
+
+All 17 native slots use only CustomAuraButtonTemplate. The rejected prototype's
+AnimateWhileShownTemplate and visibility animation-group templates remain absent.
+Those paths caused the reported secret-visibility error and unknown Show/Hide
+method warnings. The user subsequently reported no errors with the preview-only
+repair. That is evidence for the preceding repair, not this new native underlay path.
+
+Cast timing intentionally replaces the former confirmed-arrival requirement.
+Same-rank rerolls now flash; Keep It Rolling and aura updates alone do not.
+If Blizzard updates the buff late, the previous rank can be highlighted or the
+visible pattern can change mid-flash. No result-arrival guarantee is claimed.
 
 All slot artwork is created inside the provider's `initializeFrame` callback,
 before access restrictions are applied. Each result is anchored TOPLEFT to its
@@ -93,9 +152,9 @@ resized in the PNG. Linear filtering has at least five transparent texels at
 the tightest shared edge. The source layout is documented in art/README.md.
 
 Texture path, authored UVs and rectangle sizes change only during construction,
-before the native provider applies access restrictions. The native footer icon,
-13 slots, frames, events, TOC, settings, SavedVariables and cosmetic state flow
-remain unchanged. The sample footer uses the same atlas at nominal size 22;
+before the native provider applies access restrictions. The atlas consolidation
+preserved the native footer icon, events, TOC, settings and SavedVariables. Lighting
+now adds the four native underlay slots described above. The sample footer uses the same atlas at nominal size 22;
 its cropped rectangle retains the same visible center at (71,218). Existing
 client compatibility and combat proof gaps remain explicit.
 
@@ -116,13 +175,14 @@ hide and recovery; only new accepted rolls change it. Preview changes restore
 the previous live indices on exit. Initial indices are 1,1,2; reload does not
 persist cosmetic randomness or start a false spin. Random repeats are allowed.
 
-The target build, TOC, 13 native slots/four containers, frames, settings, schema and
-vertical motion timings are unchanged. Prebuilt lanes add 648 static texture
-regions, with no per-spin construction or per-frame randomization. Their actual
-client memory/rendering cost remains a profiling gate. Consolidation reduces the
-runtime TGAs from three to two and slot pixel payload from 5 MiB to 4 MiB, without
-claiming measured GPU-memory or frame-rate gains. No new artwork was generated.
-Existing combat/restriction proof gates still apply; artwork is not combat evidence.
+The target build, TOC, settings, schema and vertical motion timings are unchanged.
+The display now has 17 native slots/eight containers. All symbol foregrounds and
+native/sample underlays are prebuilt. Four finite groups use 32 alpha phases on
+ordinary owners, with no per-spin construction or per-frame randomization. Their actual client memory/rendering
+cost remains a profiling gate. Consolidation reduces the runtime TGAs from three to
+two and slot pixel payload from 5 MiB to 4 MiB, without claiming measured GPU-memory
+or frame-rate gains. No new artwork was generated. Existing combat/restriction proof
+gates still apply; artwork is not combat evidence.
 
 Core owns display availability, EditMode owns its selection/drag/preview session,
 Machine owns cosmetic animation, and Config owns account-wide durable choices.
@@ -145,6 +205,19 @@ Client rows remain evidence-gated for this revision. Off-client tests prove only
 the tested contracts, not native rendering, secret behavior, taint or protection.
 The random non-winning reel checks below were recorded before implementation. Existing
 continuous-strip, landing, idle and restricted-context checks remain applicable.
+
+### Prior preview-only win-lighting error repair (superseded)
+
+| Context / transition | Applicability | Expected result / proof boundary |
+| --- | --- | --- |
+| Login, reload and relog with or without an active result | Evidence-gated | All 13 native result buttons initialize without `SetShown` secret-value errors; exact rebuilt-package client retest is required |
+| Native result assignment, update, replacement and expiry | Evidence-gated | Blizzard alone controls slot visibility; no add-on template, handler or animation group runs on a native button; live result lighting remains absent by design |
+| One of a Kind, Double Trouble and Triple Threat Test spin | Required | The labeled Edit Mode sample waits for reel settlement, then winning dice wells pulse twice while ordinary wells briefly dim; off-client construction/lifecycle checks pass and exact-client appearance remains unverified |
+| Jackpot Test spin | Required | All three sample chest wells pulse three times with increasing strength and a longer final hold; no inset border, symbol motion or indefinite loop; off-client schedule checks pass and exact-client appearance remains unverified |
+| Animation disabled, preview hidden, deselection and Edit Mode exit | Required | No preview group starts while disabled; interruption stops every group, resets target alpha to zero and hides the ordinary effect layer; off-client lifecycle checks pass |
+| Same-rank Roll, Keep It Rolling, delayed result and restoration | Required | No live celebration occurs, so these transitions remain quiet without reading or inferring rank state; native rank and duration rendering remain unchanged |
+| Combat and aura-secret restricted contexts | Evidence-gated | No new aura event, timer, native-child access or script callback exists in the live path; exact-client taint, blocked-action and recovery checks remain required |
+| Repeated Test spins and representative long session | Evidence-gated | Four prebuilt groups are reused, stale alpha is reset on interruption and no frames or timers accumulate; endurance and actual rendering require exact-client observation |
 
 ### Asset consolidation revision
 
@@ -241,9 +314,19 @@ the attached screenshot showed a moving bottom edge cutting the lower texture in
 the third reel. This is positive feedback plus concrete evidence of the clipping
 defect, not complete rank/combat/restriction coverage and not proof of the new fix.
 
+On 2026-09-04, the user tested the first live win-lighting package on Retail
+12.1.0.69587. Initialization failed at `Game.CreateReelDisplay` with
+`Button:SetShown(): Cannot be called with secrets due to existing script handlers`
+and explicitly reported `No Lua Taint`. The client also reported unknown `Hide` and
+`Show` methods from animation-group OnLoad, OnPlay, OnStop and OnFinished scripts.
+This is exact-client evidence that the inherited native-button visibility handlers
+and dynamically instantiated visibility animation template are invalid. It is not
+proof of the corrected package, which still needs a reload/relog retest.
+
 No user proof has yet been recorded for the continuous-strip seam correction.
 The prior rum-bottle replacement has local export/preview evidence below, not in-game
-proof. The corrected symbol spacing, randomized non-winning reels and exclusive Jackpot chest still need native rendering,
+proof. The corrected symbol spacing, randomized non-winning reels, exclusive Jackpot
+chest and ordinary Edit Mode win-lighting preview still need native rendering,
 readability and restricted-context verification. Record client build,
 package identity, specialization/loadout, context, entry/exit transitions, screenshots
 and Lua/taint/blocked-action errors. Do not dump secret aura tables or widget contents.
@@ -257,9 +340,11 @@ not permission to reproduce its restricted operations in add-on Lua.
 | --- | --- |
 | Client identity/load | [Build documentation][build], [AddOnList][addonlist]: exact GetBuildInfo gate; Interface is required, not a compatibility bypass |
 | Eligibility/cast | [Specialization API][spec], [spellbook API][spellbook], [Unit API][unit]: current namespaces; UNIT_SPELLCAST_SUCCEEDED payload guarded before use |
-| Aura filtering | [CustomAuraContainer][container], [filter rules][filters]: four HELPFUL singleton includeSpellIDs slots per reel plus one four-ID footer slot; filtering and visibility stay native |
+| Aura filtering | [CustomAuraContainer][container], [filter rules][filters]: four HELPFUL singleton includeSpellIDs slots per reel, one four-ID footer and four singleton underlay slots; filtering and visibility stay native |
 | Aura presentation | [CustomAuraButton][button]: SetIcon, SetSpellName and SetDurationText bind regions without an add-on countdown or rank readback |
-| Initialization/flow | [Frame providers][provider], [AuraButton intrinsic][intrinsic], [AuraContainer][lifecycle], [CustomAuraContainer][container]: construct complete native strips before restrictions; TOPLEFT anchors tolerate zero-size containers; ordinary carriers provide animation geometry |
+| Initialization/flow | [Frame providers][provider], [AuraButton intrinsic][intrinsic], [AuraContainer][lifecycle], [CustomAuraContainer][container]: construct complete script-free native strips before restrictions; TOPLEFT anchors tolerate zero-size containers; ordinary carriers provide animation geometry |
+| Win-lighting boundary | [CustomAuraContainer][container], [frame providers][provider], [CustomAuraButton][button], [AuraButton intrinsic][intrinsic], [animation templates][animationtemplates], [UNIT_AURA documentation][unitaura]: slot options expose construction but no public assignment/update callback; secret visibility rejects added native-button handlers; secret aura updates cannot identify a confirmed rank. The approved cast-timed design runs every authored timeline and lets native filtering select the visible underlay without reading it |
+| Cast and preview animation | [animation-group API][animgroup], [animation API][anim], [texture API][textureapi]: four prebuilt finite plain groups target ordinary parents above native underlays; SetTarget returns a checked boolean. GetAlpha/SetAlpha read/write only ordinary authored alpha; all final phases end at zero and interruption resets each owner. SetFrameLevel is configured only during construction, with all symbol foregrounds above all light artwork; native alpha inheritance and frame ordering still require target-client proof |
 | Secrets/access | [FrameScript][framescript], [C_Secrets][secrets], [script object API][object]: issecretvalue/canaccesstable before value/table use; CanBeAccessedInContext and plain finite geometry before snap calculations |
 | Edit Mode lifecycle | [EditModeManager][manager]: Enter/Exit callbacks and isolated selection post-hooks; SwitchAuraDataProvider remains active even while selections are hidden |
 | Selection/snapping | [system templates Lua][systems], [system templates XML][systemxml], [magnetism][magnetism], [guide templates][guides]: native selection/guides; placement-only adapter, no native layout registration or target anchoring |
@@ -281,6 +366,10 @@ not permission to reproduce its restricted operations in add-on Lua.
 [provider]: https://github.com/Gethe/wow-ui-source/blob/8ea15b61e45c0ed4eba01439c90757f86eb78d34/Interface/AddOns/Blizzard_AuraContainer/Blizzard_AuraContainerFrameProviders.lua
 [intrinsic]: https://github.com/Gethe/wow-ui-source/blob/8ea15b61e45c0ed4eba01439c90757f86eb78d34/Interface/AddOns/Blizzard_AuraContainer/Blizzard_AuraButton.xml
 [lifecycle]: https://github.com/Gethe/wow-ui-source/blob/8ea15b61e45c0ed4eba01439c90757f86eb78d34/Interface/AddOns/Blizzard_AuraContainer/Blizzard_AuraContainer.lua
+[animationtemplates]: https://github.com/Gethe/wow-ui-source/blob/8ea15b61e45c0ed4eba01439c90757f86eb78d34/Interface/AddOns/Blizzard_SharedXML/AnimationTemplates.xml
+[animgroup]: https://github.com/Gethe/wow-ui-source/blob/8ea15b61e45c0ed4eba01439c90757f86eb78d34/Interface/AddOns/Blizzard_APIDocumentationGenerated/SimpleAnimGroupAPIDocumentation.lua
+[anim]: https://github.com/Gethe/wow-ui-source/blob/8ea15b61e45c0ed4eba01439c90757f86eb78d34/Interface/AddOns/Blizzard_APIDocumentationGenerated/SimpleAnimAPIDocumentation.lua
+[unitaura]: https://github.com/Gethe/wow-ui-source/blob/8ea15b61e45c0ed4eba01439c90757f86eb78d34/Interface/AddOns/Blizzard_APIDocumentationGenerated/UnitAuraDocumentation.lua
 [framescript]: https://github.com/Gethe/wow-ui-source/blob/8ea15b61e45c0ed4eba01439c90757f86eb78d34/Interface/AddOns/Blizzard_APIDocumentationGenerated/FrameScriptDocumentation.lua
 [secrets]: https://github.com/Gethe/wow-ui-source/blob/8ea15b61e45c0ed4eba01439c90757f86eb78d34/Interface/AddOns/Blizzard_APIDocumentationGenerated/SecretPredicateAPIDocumentation.lua
 [object]: https://github.com/Gethe/wow-ui-source/blob/8ea15b61e45c0ed4eba01439c90757f86eb78d34/Interface/AddOns/Blizzard_APIDocumentationGenerated/SimpleFrameScriptObjectAPIDocumentation.lua
@@ -302,7 +391,7 @@ not permission to reproduce its restricted operations in add-on Lua.
 [announcement]: https://us.forums.blizzard.com/en/wow/t/addons-and-auras-in-curse-of-ula%E2%80%99tek/2317456/
 
 The mirror's live branch, version.txt and commit were rechecked for the randomized reel
-revision on 2026-09-04. The official [12.1 update notes](https://news.blizzard.com/en-us/article/24293281/curse-of-ula-tek-content-update-notes)
+revision and this cast-timed lighting change on 2026-09-04. The official [12.1 update notes](https://news.blizzard.com/en-us/article/24293281/curse-of-ula-tek-content-update-notes)
 and June aura announcement were also checked; they do not replace exact-client proof.
 
 ### Static spell data
@@ -323,18 +412,25 @@ Base-duration data is not used to time live buffs.
 
 ## Local verification
 
+- Cast-timed under-symbol lighting: 45 off-client tests pass, including native filter/ordinary animation separation, normal/Jackpot schedules, layer order, preserved symbol alpha, same-rank cast replay, duplicate/unreadable input filtering, interruption, reset, reduced motion and bounded repeated rolls. The updated construction test verifies that only winning columns contain flash artwork in both native and preview layouts. The native selection and rendering are not emulated
+- Canonical artwork export verification and 27 isolated package checks passed; the lighting change does not change texture pixels or TOC metadata
+- All eight TOC Lua files passed syntax checks; git diff --check passed
+- Current cast-timed lighting ZIP without non-winning reel darkening: 13 allowlisted runtime/documentation files, with every archived file hash checked against the source. SHA256 B18FE3810AA73ABDE86986136801E0BA2077B8D491727671848A5DB15934437C. No game installation, upload or publication was performed
+- Before removing non-winning reel darkening, an authored browser visual check covered all four result samples plus idle, comparing no light with maximum light. Symbols remained above the glow/dim artwork and retained their color; idle remained unchanged. Browser warning/error logs were empty. This checks the exported sample composition, not native aura selection, alpha inheritance or combat rendering
+
 Browser evidence below was collected with a local-only web harness. Its page,
 server, snapshot exporter and captured frames are not versioned. It reads the
 two canonical PNGs into transparent 1024x1024 canvases in memory, matching the
 runtime UV space without generating duplicate preview images.
 The automated regression suite, art export tests and package checks are retained.
 
-- Current consolidation: 40 off-client Lua tests, 8 art export checks and 27 package checks passed
+- Prior preview-only error repair: 42 off-client Lua tests, 8 art export checks, 27 package checks and all 8 TOC Lua syntax checks passed
+- Prior regression checks verified all 13 native aura buttons have no add-on script handlers, runtime animation templates or animation groups. Four plain animation groups are confined to ordinary Edit Mode preview frames
 - The art export fixtures compare every source pixel and generated padding pixel against independent RGBA patterns covering all alpha values; fresh -Check is read-only, stale pixel rejection leaves outputs untouched, and missing/wrong-size sources fail
 - Independent asset comparison verified all 851,968 retained RGBA pixels match the pre-consolidation baseline; all 458,752 discarded pixels and 196,608 unused atlas pixels have alpha zero. Minimum per-region transparent padding is 5/7/7/23/24 pixels. Every retained pixel's position matches the baseline at nominal sizes 112 and 22
 - Canonical cabinet.png is 1024x630 and symbols.png is 1024x832. Their retained RGBA pixels match the 1024x1024 predecessors exactly, and every discarded pixel was transparent. Export restores transparent rows through height 1024; both TGAs are byte-identical to the pre-trim runtime files, including headers, orientation and every RGBA pixel. The art directory contains only README.md, cabinet.png and symbols.png; media contains only the two runtime TGAs
 - Browser inspection covered shared-atlas ordinary results and Jackpot, the sample footer, dim idle, 60%/100%/180% display widths and the 1.23-second landing frame. No sampled horizontal cuts, atlas bleed or changed visible scale were observed; browser warning/error logs were empty. This does not prove native filtering or restricted-client behavior
-- Current consolidated-atlas ZIP contains 13 expected files, with every archived source hash verified and all source/obsolete/preview assets excluded. SHA256 F34AE15114A52B9375580C2BB81F2C1F9242BA69F0330CCCE64F3B9D757126FD. Built without installation or upload
+- Prior preview-only consolidated-atlas ZIP contains 13 expected files, with every archived source hash verified and all source/obsolete/preview assets excluded. SHA256 40BCEDD6140EFED0CD0A86A4E39796369BF293BBAF8BA2B8248436A00DF66CB6. Built without installation or upload
 
 - Prior symbol-spacing revision on 2026-09-04: 40 off-client Lua tests and 28 isolated package checks passed; runtime Lua, TOC, settings and saved-state schema were unchanged
 - Dice moved 22 atlas pixels left and coin 14 right; every RGBA pixel matches its translated baseline, including translucent edge colors. Their sizes and vertical positions are unchanged. Dice bounds are x89..422/y62..428 (334x367), with 89/89 side margins; coin bounds are x75..435/y68..428 (361x361), with 75/76 margins

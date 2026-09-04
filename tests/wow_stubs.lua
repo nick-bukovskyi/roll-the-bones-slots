@@ -11,23 +11,48 @@ end
 
 function H.install()
     H.frames, H.widgets, H.timers, H.messages, H.callbacks = {}, {}, {}, {}, {}
+    H.animationGroups = {}
     H.nativeSlots, H.alphaWrites, H.pointWrites, H.textureWrites = {}, {}, {}, 0
+    H.clock = 0
     H.build, H.version, H.spec, H.known = "69587", "12.1.0", 260, true
     H.combat, H.restricted, H.cinematic, H.petBattle, H.loggedIn = false, false, false, false, false
     H.auraSlotCount, H.categoryCount, H.hookCount = 0, 0, 0
     local methods = {}
+    local function groupDuration(group)
+        local orders, lastOrder = {}, 0
+        for _, animation in ipairs(group.animations) do
+            local order = animation.order
+            orders[order] = math.max(orders[order] or 0,
+                animation.startDelay + animation.duration + animation.endDelay)
+            lastOrder = math.max(lastOrder, order)
+        end
+        local duration = 0
+        for order = 1, lastOrder do duration = duration + (orders[order] or 0) end
+        return duration
+    end
+    local function playGroup(group)
+        group.playCalls = group.playCalls + 1
+        group.playing = true
+        group.finishAt = H.clock + groupDuration(group)
+    end
+    local function stopGroup(group, finished)
+        if not finished then group.stopCalls = group.stopCalls + 1 end
+        group.playing, group.finishAt = false, nil
+    end
+    H._finishAnimationGroup = function(group) stopGroup(group, true) end
     local function check(value)
         local current = value
         while current do
-            assert(not current.sealed, "add-on accessed a restricted aura object after initialization")
-            current = current.parent
+            assert(not rawget(current, "sealed"), "add-on accessed a restricted aura object after initialization")
+            current = rawget(current, "parent")
         end
     end
     local function object(kind, parent, template)
         local value = { kind = kind, parent = parent or false, template = template or false,
             shown = true, scripts = {}, events = {}, callbacks = {}, width = 0, height = 0,
             scale = 1, points = {}, pointOrder = {}, children = {}, sealed = false,
-            bindings = {}, moving = false, frameLevel = 1, focused = false, accessible = true }
+            bindings = {}, moving = false, frameLevel = parent and parent.frameLevel + 1 or 1,
+            focused = false, accessible = true }
         if parent then table.insert(parent.children, value) end
         table.insert(H.widgets, value)
         return setmetatable(value, { __index = function(_, key)
@@ -99,7 +124,18 @@ function H.install()
     function methods:GetText() check(self); return rawget(self, "text") or "" end
     function methods:SetTextColor(r, g, b, a) check(self); assert(r and g and b and a) end
     function methods:SetColorTexture(r, g, b, a)
-        check(self); assert(r and g and b and a); H.textureWrites = H.textureWrites + 1
+        check(self); assert(r and g and b and a); self.color = { r, g, b, a }
+        H.textureWrites = H.textureWrites + 1
+    end
+    function methods:SetBlendMode(value)
+        check(self); assert(value == "ADD" or value == "BLEND"); self.blendMode = value
+    end
+    function methods:SetGradient(orientation, minimumColor, maximumColor)
+        check(self); H.eq(self.kind, "Texture"); H.eq(orientation, "VERTICAL")
+        assert(type(minimumColor) == "table" and type(minimumColor.GetRGBA) == "function")
+        assert(type(maximumColor) == "table" and type(maximumColor.GetRGBA) == "function")
+        self.gradient = { minimumColor, maximumColor }
+        H.textureWrites = H.textureWrites + 1
     end
     function methods:SetTexture(path, horizontal, vertical, filter)
         check(self); assert(type(path) == "string"); H.eq(horizontal, "CLAMP"); H.eq(vertical, "CLAMP"); H.eq(filter, "LINEAR"); self.texture = path
@@ -118,6 +154,7 @@ function H.install()
         check(self); assert(type(alpha) == "number" and alpha >= 0 and alpha <= 1); self.alpha = alpha
         H.alphaWrites[#H.alphaWrites + 1] = { object = self, value = alpha }
     end
+    function methods:GetAlpha() check(self); return rawget(self, "alpha") or 1 end
     function methods:SetJustifyH(value)
         check(self); assert(value == "LEFT" or value == "CENTER" or value == "RIGHT"); self.justify = value
     end
@@ -161,6 +198,46 @@ function H.install()
     function methods:SetEnabled(value) check(self); H.eq(self.kind, "AuraContainer"); assert(type(value) == "boolean"); self.enabled = value end
     function methods:SetCancelAuraButtons(value) check(self); assert(value == nil) end
     function methods:SetHideTooltipInCombat(value) check(self); H.eq(value, true) end
+    function methods:CreateAnimationGroup(name, template)
+        check(self); assert(name == nil)
+        assert(template == nil, "runtime animation-group templates are not supported")
+        local group = setmetatable({ kind = "AnimationGroup", parent = self, animations = {}, scripts = {},
+            playCalls = 0, stopCalls = 0, playing = false,
+            template = template }, { __index = function(_, key)
+            assert(methods[key], "unexpected animation group API: " .. key)
+            return methods[key]
+        end })
+        self.animationGroups = rawget(self, "animationGroups") or {}
+        self.animationGroups[#self.animationGroups + 1] = group
+        H.animationGroups[#H.animationGroups + 1] = group
+        return group
+    end
+    function methods:CreateAnimation(kind)
+        check(self); H.eq(self.kind, "AnimationGroup"); H.eq(kind, "Alpha")
+        local animation = setmetatable({ kind = kind, parent = self, order = 1, duration = 0,
+            startDelay = 0, endDelay = 0 }, { __index = function(_, key)
+            assert(methods[key], "unexpected animation API: " .. key)
+            return methods[key]
+        end })
+        self.animations[#self.animations + 1] = animation
+        return animation
+    end
+    function methods:SetTarget(target)
+        check(self); H.eq(self.kind, "Alpha"); assert(type(target) == "table"); check(target)
+        self.target = target
+        return true
+    end
+    function methods:SetOrder(value) check(self); H.eq(self.kind, "Alpha"); assert(type(value) == "number" and value >= 1 and value == math.floor(value)); self.order = value end
+    function methods:SetDuration(value) check(self); H.eq(self.kind, "Alpha"); assert(type(value) == "number" and value >= 0); self.duration = value end
+    function methods:SetStartDelay(value) check(self); H.eq(self.kind, "Alpha"); assert(type(value) == "number" and value >= 0); self.startDelay = value end
+    function methods:SetEndDelay(value) check(self); H.eq(self.kind, "Alpha"); assert(type(value) == "number" and value >= 0); self.endDelay = value end
+    function methods:SetFromAlpha(value) check(self); H.eq(self.kind, "Alpha"); assert(type(value) == "number" and value >= 0 and value <= 1); self.fromAlpha = value end
+    function methods:SetToAlpha(value) check(self); H.eq(self.kind, "Alpha"); assert(type(value) == "number" and value >= 0 and value <= 1); self.toAlpha = value end
+    function methods:SetSmoothing(value) check(self); H.eq(self.kind, "Alpha"); assert(value == "IN" or value == "OUT" or value == "IN_OUT" or value == "NONE"); self.smoothing = value end
+    function methods:SetLooping(value) check(self); H.eq(self.kind, "AnimationGroup"); assert(value == "NONE"); self.looping = value end
+    function methods:SetToFinalAlpha(value) check(self); H.eq(self.kind, "AnimationGroup"); H.eq(value, true); self.toFinalAlpha = value end
+    function methods:Play() check(self); H.eq(self.kind, "AnimationGroup"); playGroup(self) end
+    function methods:Stop() check(self); H.eq(self.kind, "AnimationGroup"); stopGroup(self, false) end
     for _, method in ipairs({ "SetIcon", "SetSpellName", "SetDurationText" }) do
         methods[method] = function(self, region) check(self); assert(region.parent == self); self.bindings[method] = region end
     end
@@ -169,15 +246,20 @@ function H.install()
         self.slots = rawget(self, "slots") or {}; assert(not self.slots[key], "duplicate native slot")
         self.filters = rawget(self, "filters") or {}
         local filters = options.candidateFilters.includeSpellIDs
+        assert(options.templateNames == nil, "native aura slots must not install script templates")
         assert(type(filters) == "table" and next(filters), "native slot needs explicit spell filters")
         for id, included in pairs(filters) do
             assert(id == 1214933 or id == 1214934 or id == 1214935 or id == 1214937)
             H.eq(included, true); self.filters[id] = true
         end
         H.auraSlotCount = H.auraSlotCount + 1
-        local button = object("AuraButton", self); options.initializeFrame(button)
+        local button = object("AuraButton", self)
+        options.initializeFrame(button)
+        assert(next(button.scripts) == nil, "native aura buttons must not gain script handlers")
+        assert(rawget(button, "animationGroups") == nil, "native aura buttons must not own add-on animations")
         local slot = { container = self, key = key, filters = filters, button = button }
         self.slots[key] = slot; H.nativeSlots[#H.nativeSlots + 1] = slot
+        button.shown = false
         button.sealed = true
         return button
     end
@@ -191,6 +273,10 @@ function H.install()
         local value = object(kind, parent, template); table.insert(H.frames, value); return value
     end
     _G.UIParent = object("Frame", nil); UIParent.width, UIParent.height = 1920, 1080
+    _G.CreateColor = function(r, g, b, a)
+        assert(type(r) == "number" and type(g) == "number" and type(b) == "number" and type(a) == "number")
+        return { GetRGBA = function() return r, g, b, a end }
+    end
     _G.issecretvalue = function(...) H.eq(select("#", ...), 1); return rawequal((...), secret) end
     _G.canaccesstable = function(...) H.eq(select("#", ...), 1); return not rawequal((...), secret) end
     _G.GetBuildInfo = function() return H.version, H.build, "Sep 3 2026", 120100 end
@@ -254,8 +340,13 @@ function H.exitEditMode()
 end
 
 function H.advance(delta)
+    assert(type(delta) == "number" and delta >= 0)
+    H.clock = H.clock + delta
     for _, frame in ipairs(H.frames) do
         if frame.scripts.OnUpdate and frame:IsVisible() then frame.scripts.OnUpdate(frame, delta) end
+    end
+    for _, group in ipairs(H.animationGroups) do
+        if group.playing and group.finishAt <= H.clock then H._finishAnimationGroup(group) end
     end
 end
 
@@ -282,6 +373,20 @@ function H.containers()
     local containers = {}
     for _, frame in ipairs(H.frames) do if frame.kind == "AuraContainer" then containers[#containers + 1] = frame end end
     return containers
+end
+
+-- Inspect authored strip regions without invoking any restricted native object
+function H.reelRegions(parent)
+    local regions = {}
+    for _, child in ipairs(parent.children) do
+        if child.kind == "Texture" then regions[#regions + 1] = child
+        elseif child.kind == "Frame" and rawget(child, "allPoints") == parent then
+            for _, region in ipairs(child.children) do
+                if region.kind == "Texture" then regions[#regions + 1] = region end
+            end
+        end
+    end
+    return regions
 end
 
 return H

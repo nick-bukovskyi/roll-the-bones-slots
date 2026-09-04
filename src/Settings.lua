@@ -104,7 +104,7 @@ local function CreatePanel()
     animation:SetSize(28, 28)
     local animationLabel = animation:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     animationLabel:SetPoint("LEFT", animation, "RIGHT", 5, 0)
-    animationLabel:SetText("Animate reels")
+    animationLabel:SetText("Animate reels and wins")
     animation:SetScript("OnClick", function()
         if CanEdit() and ns.Config.SetAnimationEnabled(animation:GetChecked()) then
             callbacks.changed()

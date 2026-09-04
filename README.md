@@ -31,8 +31,9 @@ project does not install itself, change CVars or edit your existing player data.
 - Drag the highlighted chest to position it. Enable Blizzard's snapping option
   to align with its grid and eligible Blizzard UI elements.
 - Adjust **Display scale** with the slider or percentage field, from 60% to 180%.
-- Turn off **Animate reels** for reduced motion.
+- Turn off **Animate reels and wins** for reduced motion.
 - Use **Test spin** to cycle through the four labeled sample results and an idle sample.
+  With animation enabled, result samples also preview the lighting behind the symbols.
 - Use **Reset to Defaults** to restore position, scale and animation preferences.
 
 Changes save immediately and apply account-wide. They are not tied to a Blizzard
@@ -58,7 +59,7 @@ native Jackpot result and its clearly labeled preview, never decorative spinning
 rows, neighboring symbols, idle or another result.
 
 Each identifiable cast while the display is visible chooses a cosmetic variation,
-even with Animate reels turned off. The dice positions stay fixed, and the choice
+even with animation turned off. The dice positions stay fixed, and the choice
 stays in place after landing until another accepted roll. Random choices may repeat.
 Edit Mode previews have separate choices and restore the live variation on exit.
 Variations are not saved: login or reload starts from a valid default without a
@@ -69,18 +70,29 @@ An identifiable successful cast starts a cosmetic spin lasting up to 1.5 seconds
 Each reel finishes by rolling the native-selected result symbol into place,
 stopping one after another. A continuous strip carries the decorative spin into the
 final result, with clipping only at the fixed reel window.
+After the spin lands, ordinary results get two warm pulses behind the winning
+symbols. Jackpot gets three stronger pulses with a longer final glow. Only winning
+reels light up; non-winning reels keep their normal brightness. The light stays
+behind all symbols, preserving their original color and opacity.
+Edit Mode Test spin previews the same treatment. Turning animation off, resetting
+defaults, hiding the display or leaving preview cancels pending lights immediately.
 The live name and countdown remain separate from the spinning reels. Settled without an
 active result, the chest shows fixed dim coin, swords and dice symbols with
 **Awaiting a result**, not a random or winning combination.
 
 The add-on does not read hidden aura values or calculate the result from the cast.
-When restrictions hide the cast, the cosmetic spin may be skipped. Buff changes,
+Lighting follows the result Blizzard is currently displaying on a fixed schedule
+after each identifiable Roll the Bones cast. Same-rank rerolls also flash. Keep It
+Rolling, other duration updates, login and UI restoration do not start a spin or flash.
+When restrictions hide the cast, the cosmetic spin and flash may be skipped. Buff changes,
 extensions and expiration are handled by the native display. The animation uses
 fixed timing and cannot wait for confirmation that a new buff has arrived. A delayed
 aura update or rapid reroll during landing can still change the symbol during or
 after the landing; this prototype does not guarantee removal of every blink.
-An old Jackpot can remain visible until Blizzard updates the buff after a reroll;
-the chest does not confirm that the newest cast won.
+An old Jackpot can remain visible and receive lighting until Blizzard updates the
+buff after a reroll. Neither the chest nor its flash confirms that the newest cast won.
+The live lighting and under-symbol layering still need in-game verification with
+this package; the user's no-error retest covered the preceding preview-only repair.
 Jackpot-specific sounds, reroll advice, history and chat messages are not included.
 
 ## First gameplay checks
@@ -96,6 +108,8 @@ Jackpot-specific sounds, reroll advice, history and chat messages are not includ
 - Reload or relog with an active buff; check that it returns without a false spin
 - Test sustained combat and a restricted instance, then leave and check recovery
 - Try Edit Mode selection, Test spin, reset, dragging and snapping at 60%, 100% and 180%
+- Check real rolls and Test spin for two ordinary pulses and three Jackpot pulses behind the symbols, with no Lua warnings
+- Reroll the same rank, use Keep It Rolling, and reset or disable animation mid-flash; check replay and cancellation
 - Check entering combat while editing, hiding Edit Mode selections and leaving Edit Mode
 - Check texture transparency, clipped reel edges and readability at your UI scale
 - Check every variation for symbols leaking in from the sides at 60%, 100% and 180%

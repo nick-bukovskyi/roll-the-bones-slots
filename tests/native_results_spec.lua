@@ -22,7 +22,7 @@ return function(test, H, loadAddon)
     local function strip(parent, pitch, laneX)
         laneX = laneX or 0
         local rows, backgrounds = {}, {}
-        for _, region in ipairs(parent.children) do
+        for _, region in ipairs(H.reelRegions(parent)) do
             if region.kind == "Texture" then
                 if region.drawLayer == "BACKGROUND" then
                     local background = rectangle(region)
@@ -51,7 +51,6 @@ return function(test, H, loadAddon)
         end
         assert(covered >= bottom, "opaque strip backing leaves an uncovered interval")
     end
-
     test("native reel and footer construction has thirteen slots without result readback", function()
         local ns = loadAddon()
         local originalCreateFrame = CreateFrame
@@ -71,6 +70,7 @@ return function(test, H, loadAddon)
             function methods:SetUnit(unit) eq(self, container); eq(unit, "player"); calls.unit = true end
             function methods:AddAuraSlot(key, filter, options)
                 eq(self, container); eq(filter, "HELPFUL")
+                eq(options.templateNames, nil)
                 local resultIndex = initialized + 1
                 eq(key, footer and "footer" or "result" .. resultIndex)
                 local map, count = options.candidateFilters.includeSpellIDs, 0
@@ -133,8 +133,9 @@ return function(test, H, loadAddon)
     test("native result strips cover dim idle artwork and the native footer covers the waiting message", function()
         local ns = loadAddon()
         ns.Config.Initialize(nil); ns.Machine.Initialize()
-        eq(#H.nativeSlots, 13)
-        for index, slot in ipairs(H.nativeSlots) do
+        eq(#H.nativeSlots, 17)
+        for index = 1, 13 do
+            local slot = H.nativeSlots[index]
             -- Inspect test construction metadata only, never invoke a sealed native object
             local button = slot.button
             if index <= 12 then

@@ -97,3 +97,17 @@ function Game.CreateFooterDisplay(parent, initializeFooter)
     container:SetEnabled(true)
     return container
 end
+
+function Game.CreateWinDisplay(parent, definition, initializeWin)
+    local container = CreateContainer(parent)
+    container:AddAuraSlot("win", "HELPFUL", {
+        candidateFilters = { includeSpellIDs = { [definition.spellID] = true } },
+        initializeFrame = function(button)
+            InitializeButton(button, container)
+            button:EnableMouse(false)
+            initializeWin(button, definition)
+        end,
+    })
+    container:SetEnabled(true)
+    return container
+end

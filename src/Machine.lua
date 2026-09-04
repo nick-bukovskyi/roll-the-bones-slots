@@ -4,9 +4,17 @@ local Machine = {}
 ns.Machine = Machine
 local frame, previewLabel
 local samples, reels, displays = {}, {}, {}
+local effects = {}
 local previewIndex, previewActive = 2, false
 local elapsed = 0
 local ROLL_IN, SETTLE, LAST_STOP = 0.44, 0.12, 1.50
+
+local function StopWinEffects()
+    for _, effect in ipairs(effects) do
+        effect.animation:Stop()
+        if effect.owner:GetAlpha() ~= 0 then effect.owner:SetAlpha(0) end
+    end
+end
 
 local function MoveReel(reel, offset)
     -- Never anchor to or query a native container or result child
@@ -18,16 +26,21 @@ function Machine.GetFrame()
     return frame
 end
 
-function Machine.StopSpin()
+local function SettleReels()
     if not frame then return end
     frame:SetScript("OnUpdate", nil)
     elapsed = 0
     for _, reel in ipairs(reels) do MoveReel(reel, 0) end
 end
 
+function Machine.StopSpin()
+    SettleReels()
+    StopWinEffects()
+end
+
 local function Animate(_, delta)
     elapsed = elapsed + delta
-    if elapsed >= LAST_STOP then Machine.StopSpin(); return end
+    if elapsed >= LAST_STOP then SettleReels(); return end
     for _, reel in ipairs(reels) do
         local landingTime = elapsed - reel.rollStart
         if landingTime >= ROLL_IN + SETTLE then
@@ -47,6 +60,7 @@ end
 
 function Machine.Spin()
     if not frame or not frame:IsVisible() then return end
+    StopWinEffects()
     -- Cosmetic choices are independent of the active aura and cannot add winning symbols
     local first = math.random(1, #ns.Art.VariantSymbols)
     local second = math.random(1, #ns.Art.VariantSymbols - 1)
@@ -54,6 +68,10 @@ function Machine.Spin()
     local field = previewActive and "previewVariant" or "variant"
     reels[2][field], reels[3][field] = first, second
     if not ns.Config.GetAnimationEnabled() then Machine.StopSpin(); return end
+    -- Start every live timeline without inspecting which native rank is visible
+    for index, effect in ipairs(effects) do
+        if not previewActive or index == previewIndex then effect.animation:Play() end
+    end
     elapsed = 0
     Animate(frame, 0)
     frame:SetScript("OnUpdate", Animate)
@@ -88,6 +106,7 @@ function Machine.PreviewNext()
     previewIndex = previewIndex % (#samples + 1) + 1
     for index, sample in ipairs(samples) do
         sample:SetShown(index == previewIndex)
+        effects[index].preview:SetShown(index == previewIndex)
         for _, reel in ipairs(reels) do reel.samples[index]:SetShown(index == previewIndex) end
     end
     Machine.Spin()
@@ -106,9 +125,11 @@ function Machine.SetPresentation(visible, preview)
     for index, sample in ipairs(samples) do
         local shown = preview and index == previewIndex
         sample:SetShown(shown)
+        effects[index].preview:SetShown(shown)
         for _, reel in ipairs(reels) do reel.samples[index]:SetShown(shown) end
     end
     previewLabel:SetShown(preview)
+    if not visible or not ns.Config.GetAnimationEnabled() then Machine.StopSpin() end
     frame:SetShown(visible)
 end
 
@@ -122,6 +143,7 @@ function Machine.Initialize()
     frame:SetDontSavePosition(true)
     frame:EnableMouse(false)
     ns.Art.Cabinet(frame)
+    effects = ns.Art.WinEffects(frame, ns.Game.Results, LAST_STOP)
     for index = 1, 3 do
         local well = ns.Art.Well(frame, index)
         local carrier = CreateFrame("Frame", nil, well)
@@ -145,6 +167,9 @@ function Machine.Initialize()
         MoveReel(reel, 0)
     end
     displays[#displays + 1] = ns.Game.CreateFooterDisplay(frame, ns.Art.NativeFooter)
+    for index, effect in ipairs(effects) do
+        displays[#displays + 1] = ns.Game.CreateWinDisplay(effect.owner, ns.Game.Results[index], ns.Art.WinResult)
+    end
     for index, definition in ipairs(ns.Game.Results) do
         local sample = CreateFrame("Frame", nil, frame)
         sample:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, 0)

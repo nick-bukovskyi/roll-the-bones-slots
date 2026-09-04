@@ -46,7 +46,7 @@ return function(test, H, loadAddon)
     local function Carriers(ns)
         local found = {}
         for _, container in ipairs(H.containers()) do
-            if container.parent ~= ns.Machine.GetFrame() then found[#found + 1] = container.parent end
+            if rawget(container.parent.parent, "clipsChildren") then found[#found + 1] = container.parent end
         end
         eq(#found, 3)
         return found
@@ -72,7 +72,7 @@ return function(test, H, loadAddon)
 
     local function CenterSymbol(parent, x)
         local found
-        for _, texture in ipairs(parent.children) do
+        for _, texture in ipairs(H.reelRegions(parent)) do
             local point = texture.kind == "Texture" and texture.points.CENTER
             if point and point[3] == x and point[4] == 0 then
                 assert(not found, "duplicate lane center")
@@ -118,7 +118,7 @@ return function(test, H, loadAddon)
                 local target = H.pointWrites[index]
                 assert(target == moving[1] or target == moving[2] or target == moving[3])
             end
-            eq(H.auraSlotCount, 13)
+            eq(H.auraSlotCount, 17)
         end)
     end)
 
@@ -187,7 +187,7 @@ return function(test, H, loadAddon)
             end
             for _, entry in ipairs(parents) do
                 local parent, count = entry.object, 0
-                for _, region in ipairs(parent.children) do
+                for _, region in ipairs(H.reelRegions(parent)) do
                     if region.kind == "Texture" then
                         local center, left, laneX = region.points.CENTER
                         if center then

@@ -36,7 +36,9 @@ return function(test, H, loadAddon)
         -- All checks run at rest; exclude the prebuilt lanes outside the fixed well
         if widget.kind == "Texture" and widget.points.CENTER and widget.points.CENTER[2] == "CENTER" then
             local carrier = widget.parent
-            if not rawget(carrier.parent, "clipsChildren") then carrier = carrier.parent end
+            while carrier and carrier.parent and not rawget(carrier.parent, "clipsChildren") do
+                carrier = carrier.parent
+            end
             if carrier and carrier.parent and rawget(carrier.parent, "clipsChildren") then
                 return widget.points.CENTER[3] + carrier.points.TOPLEFT[3] == 0
             end
@@ -48,8 +50,9 @@ return function(test, H, loadAddon)
         local ns = loadAddon()
         ns.Config.Initialize(nil); ns.Machine.Initialize()
         local centers, ordinaryRows = 0, 0
-        eq(#H.nativeSlots, 13)
-        for index, slot in ipairs(H.nativeSlots) do
+        eq(#H.nativeSlots, 17)
+        for index = 1, 13 do
+            local slot = H.nativeSlots[index]
             local button = slot.button
             -- Read harness construction metadata, without invoking sealed native widgets
             if slot.key == "footer" then
@@ -63,7 +66,7 @@ return function(test, H, loadAddon)
                 eq(icon.points.TOPLEFT[3], 60); eq(icon.points.TOPLEFT[4], -207)
             else
                 local count = 0
-                for _, texture in ipairs(button.children) do
+                for _, texture in ipairs(H.reelRegions(button)) do
                     if texture.kind == "Texture" and texture.points.CENTER then
                         local row = -texture.points.CENTER[4] / ns.Art.Pitch
                         local chest = slot.filters[1214937] == true and row == 0

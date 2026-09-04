@@ -8,6 +8,16 @@ local CABINET_HEIGHT = 630 / 1024
 local WELLS = { { 53, 39, 91, 153 }, { 153, 39, 94, 153 }, { 258, 39, 91, 153 } }
 local IDLE_SYMBOLS = { 2, 3, 1 }
 local ORDINARY_SYMBOL_COUNT = 4
+local LIGHT_LEVEL_OFFSET, SYMBOL_LEVEL_OFFSET = 10, 20
+local NORMAL_FLASH = {
+    { rise = 0.12, hold = 0.04, fade = 0.24, gap = 0.14, strength = 1 },
+    { rise = 0.12, hold = 0.04, fade = 0.26, gap = 0, strength = 1 },
+}
+local JACKPOT_FLASH = {
+    { rise = 0.10, hold = 0.05, fade = 0.20, gap = 0.10, strength = 0.75 },
+    { rise = 0.10, hold = 0.05, fade = 0.22, gap = 0.13, strength = 0.90 },
+    { rise = 0.12, hold = 0.16, fade = 0.38, gap = 0, strength = 1 },
+}
 -- Centered crops of the original 512-pixel symbol canvases, preserving visible scale
 local SYMBOL_RECTS = {
     { 0, 0, 344, 416 }, { 344, 0, 376, 416 }, { 720, 0, 304, 416 },
@@ -78,11 +88,110 @@ function Art.Well(parent, index)
     return well
 end
 
+local function AddFlashTarget(parent, index, peakAlpha)
+    local bounds = WELLS[index]
+    local target = CreateFrame("Frame", nil, parent)
+    target:SetPoint("TOPLEFT", parent, "TOPLEFT", bounds[1], -bounds[2])
+    target:SetSize(bounds[3], bounds[4])
+    target:SetAlpha(peakAlpha)
+    return target
+end
+
+local function AddWinLight(parent, index, peakAlpha)
+    local bounds = WELLS[index]
+    local halfHeight = bounds[4] / 2
+    local edge = CreateColor(0.47, 0.24, 0.02, 0.42)
+    local center = CreateColor(1, 0.92, 0.65, 1)
+    local target = AddFlashTarget(parent, index, peakAlpha)
+
+    local top = target:CreateTexture(nil, "ARTWORK")
+    top:SetPoint("TOPLEFT", target, "TOPLEFT", 0, 0)
+    top:SetSize(bounds[3], halfHeight)
+    top:SetColorTexture(1, 1, 1, 1)
+    top:SetGradient("VERTICAL", center, edge)
+    top:SetBlendMode("ADD")
+
+    local bottom = target:CreateTexture(nil, "ARTWORK")
+    bottom:SetPoint("TOPLEFT", target, "TOPLEFT", 0, -halfHeight)
+    bottom:SetSize(bounds[3], halfHeight)
+    bottom:SetColorTexture(1, 1, 1, 1)
+    bottom:SetGradient("VERTICAL", edge, center)
+    bottom:SetBlendMode("ADD")
+end
+
+-- Prebuilt artwork; Blizzard alone selects the live rank after initialization
+function Art.WinResult(parent, definition)
+    parent:SetSize(Art.Width, Art.Height)
+    local jackpot = definition.symbols[1] == 5
+    for reelIndex, symbol in ipairs(definition.symbols) do
+        if symbol == 1 or symbol == 5 then
+            AddWinLight(parent, reelIndex, jackpot and 0.88 or 0.58)
+        end
+    end
+end
+
+local function AddAlphaPhase(group, target, fromAlpha, toAlpha, duration, order, smoothing, startDelay)
+    local animation = group:CreateAnimation("Alpha")
+    assert(animation:SetTarget(target), "Win animation target rejected")
+    animation:SetFromAlpha(fromAlpha)
+    animation:SetToAlpha(toAlpha)
+    animation:SetDuration(duration)
+    animation:SetOrder(order)
+    if smoothing then animation:SetSmoothing(smoothing) end
+    if startDelay and startDelay > 0 then animation:SetStartDelay(startDelay) end
+end
+
+local function WinAnimation(owner, definition, startDelay)
+    local group = owner:CreateAnimationGroup()
+    group:SetLooping("NONE")
+    group:SetToFinalAlpha(true)
+    local order = 1
+    local schedule = definition.symbols[1] == 5 and JACKPOT_FLASH or NORMAL_FLASH
+    for pulseIndex, pulse in ipairs(schedule) do
+        AddAlphaPhase(group, owner, 0, pulse.strength, pulse.rise, order, "IN_OUT",
+            pulseIndex == 1 and startDelay or nil)
+        order = order + 1
+        AddAlphaPhase(group, owner, pulse.strength, pulse.strength, pulse.hold, order)
+        order = order + 1
+        AddAlphaPhase(group, owner, pulse.strength, 0, pulse.fade, order, "IN_OUT")
+        order = order + 1
+        if pulse.gap > 0 then
+            AddAlphaPhase(group, owner, 0, 0, pulse.gap, order)
+            order = order + 1
+        end
+    end
+    return group
+end
+
+function Art.WinEffects(parent, definitions, startDelay)
+    local effects = {}
+    for index, definition in ipairs(definitions) do
+        local owner = CreateFrame("Frame", nil, parent)
+        owner:SetAllPoints(parent)
+        owner:SetFrameLevel(parent:GetFrameLevel() + LIGHT_LEVEL_OFFSET)
+        owner:SetAlpha(0)
+        local preview = CreateFrame("Frame", nil, owner)
+        preview:SetPoint("TOPLEFT", owner, "TOPLEFT", 0, 0)
+        Art.WinResult(preview, definition)
+        preview:Hide()
+        effects[index] = { owner = owner, preview = preview,
+            animation = WinAnimation(owner, definition, startDelay) }
+    end
+    return effects
+end
+
 -- Only the stationary well clips this continuous strip, never a moving panel edge
 function Art.ReelResult(parent, definition, index)
     local bounds = WELLS[index]
     parent:SetSize(bounds[3], bounds[4])
     local opacity = definition and 1 or 0.22
+    local foreground = parent
+    if definition then
+        -- Keep symbols above the separate light branches and their opaque backing below
+        foreground = CreateFrame("Frame", nil, parent)
+        foreground:SetAllPoints(parent)
+        foreground:SetFrameLevel(parent:GetFrameLevel() + SYMBOL_LEVEL_OFFSET)
+    end
     -- Prebuild side-by-side variants before native restrictions, never reskin a live slot
     for lane = 1, index == 1 and 1 or #Art.VariantSymbols do
         local x = (lane - 1) * Art.LanePitch
@@ -96,8 +205,8 @@ function Art.ReelResult(parent, definition, index)
             local face = leadIn and (offset + index) % ORDINARY_SYMBOL_COUNT + 1
                 or offset == 0 and symbol
                 or (symbol + offset + ORDINARY_SYMBOL_COUNT - 1) % ORDINARY_SYMBOL_COUNT + 1
-            local texture = Art.Symbol(parent, face, Art.SymbolSize)
-            texture:SetPoint("CENTER", parent, "CENTER", x, -offset * Art.Pitch)
+            local texture = Art.Symbol(foreground, face, Art.SymbolSize)
+            texture:SetPoint("CENTER", foreground, "CENTER", x, -offset * Art.Pitch)
             texture:SetAlpha(leadIn and 1 or opacity * (offset == 0 and 1 or 0.45))
         end
     end
