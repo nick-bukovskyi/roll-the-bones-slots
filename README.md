@@ -113,10 +113,19 @@ Do not dump secret aura tables. The full matrix and source evidence are in
 Run from the repository directory:
 
 ```powershell
+./scripts/export-art.ps1
+./scripts/export-art.ps1 -Check
 lua tests/runner.lua
+./tests/art_export_spec.ps1
 ./tests/package_spec.ps1
 ./scripts/package.ps1
 ```
+
+The authoritative artwork is `art/cabinet.png` and the five-icon atlas
+`art/symbols.png`. The exporter copies these tightly bounded PNGs into two
+transparent 1024x1024 runtime TGAs so WoW receives power-of-two textures;
+`-Check` rejects stale pixels or padding without changing files. See
+[art/README.md](art/README.md) for the atlas rectangles and editing workflow.
 
 Tests load files in TOC order with add-on varargs and strict API stubs. They do not
 establish real-client rendering or combat safety. Packaging verifies its explicit

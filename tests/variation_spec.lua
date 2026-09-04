@@ -2,6 +2,22 @@
 return function(test, H, loadAddon)
     local eq = H.eq
     local MEDIA = "Interface\\AddOns\\RollTheBonesSlots\\media\\"
+    local SYMBOL_RECTS = {
+        { 0, 0, 344, 416 }, { 344, 0, 376, 416 }, { 720, 0, 304, 416 },
+        { 0, 416, 512, 416 }, { 512, 416, 512, 416 },
+    }
+
+    local function SymbolID(texture)
+        eq(texture.texture, MEDIA .. "symbols.tga")
+        local uv = texture.texCoords
+        for id, rect in ipairs(SYMBOL_RECTS) do
+            if uv[1] * 1024 == rect[1] and uv[2] * 1024 == rect[1] + rect[3]
+                and uv[3] * 1024 == rect[2] and uv[4] * 1024 == rect[2] + rect[4] then
+                return id
+            end
+        end
+        error("symbol outside an authored atlas region")
+    end
 
     local function WithDraws(values, run)
         local original, count = math.random, 0
@@ -60,11 +76,8 @@ return function(test, H, loadAddon)
             local point = texture.kind == "Texture" and texture.points.CENTER
             if point and point[3] == x and point[4] == 0 then
                 assert(not found, "duplicate lane center")
-                if texture.texture == MEDIA .. "jackpot.tga" then found = 5
-                else
-                    eq(texture.texture, MEDIA .. "symbols.tga")
-                    found = 1 + 2 * texture.texCoords[1] + 4 * texture.texCoords[3]
-                end
+                eq(point[2], "CENTER")
+                found = SymbolID(texture)
             end
         end
         return assert(found, "missing lane center")
@@ -178,9 +191,12 @@ return function(test, H, loadAddon)
                     if region.kind == "Texture" then
                         local center, left, laneX = region.points.CENTER
                         if center then
+                            eq(center[2], "CENTER")
                             laneX = center[3]
                             left = parent.width / 2 + laneX - region.width / 2
-                            eq(region.width, ns.Art.SymbolSize)
+                            local rect = SYMBOL_RECTS[SymbolID(region)]
+                            eq(region.width, ns.Art.SymbolSize * rect[3] / 512)
+                            eq(region.height, ns.Art.SymbolSize * rect[4] / 512)
                         else
                             eq(region.drawLayer, "BACKGROUND")
                             laneX = assert(region.points.TOPLEFT)[3]; left = laneX

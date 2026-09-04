@@ -1,0 +1,130 @@
+# Exercise the real PNG-to-TGA exporter with disposable canonical artwork
+[CmdletBinding()]
+param()
+
+Set-StrictMode -Version Latest
+$ErrorActionPreference = 'Stop'
+Add-Type -AssemblyName System.Drawing
+Add-Type -ReferencedAssemblies @([System.Drawing.Bitmap].Assembly.Location, [System.Drawing.Color].Assembly.Location,
+    'System.Runtime', 'System.Private.Windows.GdiPlus', 'System.Private.Windows.Core') -TypeDefinition @'
+using System;
+using System.Drawing;
+using System.Drawing.Imaging;
+using System.IO;
+public static class SlotArtExportFixture {
+    private static Color Pixel(int x, int y, int seed) {
+        // Include every alpha value, colored transparent pixels, and distinct rows
+        return Color.FromArgb((x + 3*y) % 256, (x + seed*17) % 256,
+            (y + seed*31) % 256, (x + y + seed*53) % 256);
+    }
+    public static void WritePng(string path, int seed, int width, int height) {
+        using(var image = new Bitmap(width, height, PixelFormat.Format32bppArgb)) {
+            for(int y = 0; y < height; y++)
+                for(int x = 0; x < width; x++) image.SetPixel(x, y, Pixel(x, y, seed));
+            image.Save(path, ImageFormat.Png);
+        }
+    }
+    public static void AssertTga(string path, int seed, int sourceHeight) {
+        byte[] data = File.ReadAllBytes(path);
+        byte[] header = {0,0,2,0,0,0,0,0,0,0,0,0,0,4,0,4,32,0x28};
+        if(data.Length != 18 + 1024*1024*4) throw new Exception("Incorrect TGA length: " + path);
+        for(int index = 0; index < header.Length; index++)
+            if(data[index] != header[index]) throw new Exception("Incorrect TGA header: " + path);
+        for(int y = 0; y < 1024; y++) for(int x = 0; x < 1024; x++) {
+            uint actual = BitConverter.ToUInt32(data, 18 + 4*(y*1024 + x));
+            uint expected = y < sourceHeight ? unchecked((uint)Pixel(x, y, seed).ToArgb()) : 0;
+            if(actual != expected) throw new Exception("Changed RGBA pixel at " + x + "," + y + ": " + path);
+        }
+    }
+}
+'@
+
+$projectRoot = Split-Path -Parent $PSScriptRoot
+$exportScript = Join-Path $projectRoot 'scripts/export-art.ps1'
+$temporaryRoot = [IO.Path]::GetFullPath([IO.Path]::GetTempPath())
+$fixtureRoot = Join-Path $temporaryRoot ('RollTheBonesSlots-art-test-' + [guid]::NewGuid().ToString('N'))
+$null = New-Item -ItemType Directory -Path $fixtureRoot
+$artDirectory = Join-Path $fixtureRoot 'art'
+$mediaDirectory = Join-Path $fixtureRoot 'media'
+$checks = 0
+
+function Get-FixtureState {
+    # Hashes catch writes; fixed timestamps also catch rewrites of identical bytes
+    $entries = Get-ChildItem -LiteralPath $fixtureRoot -Recurse -Force | Sort-Object FullName
+    return ($entries | ForEach-Object {
+        if ($_.PSIsContainer) { "directory|$($_.FullName)" }
+        else { "$($_.FullName)|$($_.Length)|$($_.LastWriteTimeUtc.Ticks)|$((Get-FileHash -LiteralPath $_.FullName).Hash)" }
+    }) -join "`n"
+}
+
+function Assert-ExportCheckRejected {
+    param([string]$Name, [string]$ExpectedError)
+    $before = Get-FixtureState
+    $failure = $null
+    try { & $exportScript -ProjectRoot $fixtureRoot -Check | Out-Null } catch { $failure = $_ }
+    if (-not $failure -or ($ExpectedError -and $failure.Exception.Message -notmatch $ExpectedError)) {
+        throw "Expected export check rejection for $Name; got $failure"
+    }
+    if ((Get-FixtureState) -cne $before) { throw "Export check changed fixture files for $Name" }
+}
+
+try {
+    $null = New-Item -ItemType Directory -Path $artDirectory
+    $cabinetSource = Join-Path $artDirectory 'cabinet.png'
+    $symbolsSource = Join-Path $artDirectory 'symbols.png'
+    [SlotArtExportFixture]::WritePng($cabinetSource, 1, 1024, 630)
+    [SlotArtExportFixture]::WritePng($symbolsSource, 2, 1024, 832)
+    & $exportScript -ProjectRoot $fixtureRoot | Out-Null
+    $cabinetOutput = Join-Path $mediaDirectory 'cabinet.tga'
+    $symbolsOutput = Join-Path $mediaDirectory 'symbols.tga'
+    [SlotArtExportFixture]::AssertTga($cabinetOutput, 1, 630)
+    [SlotArtExportFixture]::AssertTga($symbolsOutput, 2, 832)
+    $checks += 2
+    if (@(Get-ChildItem -LiteralPath $mediaDirectory -File).Count -ne 2) {
+        throw 'Export created unexpected runtime textures'
+    }
+    $checks++
+
+    foreach ($file in Get-ChildItem -LiteralPath $fixtureRoot -File -Recurse) {
+        $file.LastWriteTimeUtc = [datetime]::new(2001, 1, 1, 0, 0, 0, [DateTimeKind]::Utc)
+    }
+    $before = Get-FixtureState
+    & $exportScript -ProjectRoot $fixtureRoot -Check | Out-Null
+    if ((Get-FixtureState) -cne $before) { throw 'Successful export check modified fixture files' }
+    $checks++
+
+    $freshSymbols = [IO.File]::ReadAllBytes($symbolsOutput)
+    $staleSymbols = [byte[]]$freshSymbols.Clone()
+    $staleSymbols[22] = $staleSymbols[22] -bxor 1
+    [IO.File]::WriteAllBytes($symbolsOutput, $staleSymbols)
+    Assert-ExportCheckRejected 'altered output pixel' 'Stale texture export'
+    [IO.File]::WriteAllBytes($symbolsOutput, $freshSymbols)
+    $checks++
+
+    # Missing sources are rejected rather than silently accepting an old export
+    $sourceBytes = [IO.File]::ReadAllBytes($symbolsSource)
+    Remove-Item -LiteralPath $symbolsSource
+    Assert-ExportCheckRejected 'missing canonical PNG' ''
+    [IO.File]::WriteAllBytes($symbolsSource, $sourceBytes)
+    $checks++
+
+    [SlotArtExportFixture]::WritePng($cabinetSource, 1, 1024, 629)
+    Assert-ExportCheckRejected 'wrong cabinet dimensions' 'Expected a 1024x630 canonical PNG'
+    $checks++
+
+    [SlotArtExportFixture]::WritePng($cabinetSource, 1, 1024, 630)
+    [SlotArtExportFixture]::WritePng($symbolsSource, 2, 1023, 832)
+    Assert-ExportCheckRejected 'wrong symbols dimensions' 'Expected a 1024x832 canonical PNG'
+    $checks++
+    Write-Output "$checks art export checks passed"
+} finally {
+    # Delete only the exact temporary fixture created by this test
+    $resolvedFixture = (Resolve-Path -LiteralPath $fixtureRoot).Path
+    $expectedFixture = [IO.Path]::GetFullPath($fixtureRoot)
+    if (-not $resolvedFixture.Equals($expectedFixture, [StringComparison]::OrdinalIgnoreCase) `
+        -or -not $resolvedFixture.StartsWith($temporaryRoot, [StringComparison]::OrdinalIgnoreCase) `
+        -or (Split-Path -Leaf $resolvedFixture) -notmatch '^RollTheBonesSlots-art-test-[0-9a-f]{32}$') {
+        throw 'Refusing cleanup outside the temporary art fixture'
+    }
+    Remove-Item -LiteralPath $resolvedFixture -Recurse -Force
+}

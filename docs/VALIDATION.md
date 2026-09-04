@@ -66,12 +66,38 @@ cosmetic schedule as buff synchronization or claim a universal blink fix.
 An existing Jackpot can remain visible until its native aura is replaced or expires;
 the chest is not confirmation that the latest cast produced a new Jackpot.
 
-The artwork uses standalone symbol 5 in `media/jackpot.tga`, using its full
-texture area, with Jackpot's authored mapping {5,5,5}. It appears
+The artwork uses one five-symbol `media/symbols.tga` atlas, with Jackpot's
+authored mapping {5,5,5}. Symbol 5 appears
 in the three visible native Jackpot centers and the labeled Jackpot preview's centers
 and footer. Native footer icon binding is unchanged. All decorative lead-in,
-neighbor and idle rows remain in ordinary symbols 1–4, including the existing
-lower-right rum-bottle atlas cell. The ordinary atlas is not repacked.
+neighbor and idle rows remain in ordinary symbols 1–4, including rum.
+
+The current asset consolidation keeps only two authoritative finished PNGs:
+the 1024x630 `art/cabinet.png` and 1024x832 `art/symbols.png`. Their unrelated
+bottom reserve was removed. Export copies every source pixel to the top-left of
+two transparent 1024x1024 TGAs, with no background keying, resizing or artwork
+relocation. Generated padding keeps both runtime dimensions at powers of two;
+the build-matched SetTexture documentation does not define decoder dimensions,
+while current custom-texture guidance requires power-of-two edges. Exact-build
+non-power-of-two loading has not been proven, so the runtime layout remains unchanged.
+The old generation sheets, separate icon sources and standalone Jackpot texture
+were removed. Local preview HTML and captures moved to `artifacts/preview`.
+
+The atlas uses centered crops of the approved 512-pixel symbol canvases. Dice,
+coin and swords occupy 344x416, 376x416 and 304x416 rectangles across the top;
+rum and Jackpot each occupy 512x416 below. Only transparent padding was removed.
+Art.lua owns the five UV rectangles and scales each texture rectangle by its
+crop width/512 and height/512, preserving visible pixels, size and center. The
+previous dice/coin centering and narrower swords remain intact. No symbol is
+resized in the PNG. Linear filtering has at least five transparent texels at
+the tightest shared edge. The source layout is documented in art/README.md.
+
+Texture path, authored UVs and rectangle sizes change only during construction,
+before the native provider applies access restrictions. The native footer icon,
+13 slots, frames, events, TOC, settings, SavedVariables and cosmetic state flow
+remain unchanged. The sample footer uses the same atlas at nominal size 22;
+its cropped rectangle retains the same visible center at (71,218). Existing
+client compatibility and combat proof gaps remain explicit.
 
 Non-winning positions are authored as zero in Game.Results: {1,0,0} and {1,1,0}.
 Art resolves zero during initialization to a prebuilt coin, cutlasses or rum lane.
@@ -93,8 +119,9 @@ persist cosmetic randomness or start a false spin. Random repeats are allowed.
 The target build, TOC, 13 native slots/four containers, frames, settings, schema and
 vertical motion timings are unchanged. Prebuilt lanes add 648 static texture
 regions, with no per-spin construction or per-frame randomization. Their actual
-client memory/rendering cost remains a profiling gate. The archive still contains
-the same three runtime TGAs; no image was generated or changed for randomization.
+client memory/rendering cost remains a profiling gate. Consolidation reduces the
+runtime TGAs from three to two and slot pixel payload from 5 MiB to 4 MiB, without
+claiming measured GPU-memory or frame-rate gains. No new artwork was generated.
 Existing combat/restriction proof gates still apply; artwork is not combat evidence.
 
 Core owns display availability, EditMode owns its selection/drag/preview session,
@@ -119,6 +146,36 @@ the tested contracts, not native rendering, secret behavior, taint or protection
 The random non-winning reel checks below were recorded before implementation. Existing
 continuous-strip, landing, idle and restricted-context checks remain applicable.
 
+### Asset consolidation revision
+
+| Context / transition | Applicability | Expected result / proof boundary |
+| --- | --- | --- |
+| Canonical PNGs, conversion and stale exports | Required | Two tightly bounded PNG inputs; every source RGBA pixel copied exactly; generated bottom rows transparent; deterministic export and read-only -Check rejects stale output; fixture and actual-asset checks |
+| Five symbols and prior spacing | Required | Every retained pixel equals the pre-consolidation artwork; discarded pixels are transparent; cropped texture geometry preserves visible size and center |
+| Four ranks, six cosmetic pairs, dim idle, preview footer | Required | Exact UV identities, Jackpot-only chest and fixed dice counts; all constructed native/editor lanes use the shared atlas; off-client tests plus browser inspection |
+| Spin start, scrolling, landing, interruption, reduced motion | Required | Shared atlas retains continuous strips, correct neighboring symbols and lane isolation; no post-initialization native edits; regression tests and selected browser frames |
+| 60%, 100%, 180%, native TGA load, login/reload, Edit Mode and restricted encounters | Evidence-gated | Runtime TGAs are byte-identical to the prior 1024x1024 exports, so no texture-loading or UV change was introduced; source/browser checks still cannot prove target-client rendering; native cases remain unverified |
+| Package and asset cleanup | Required | Two TGAs in the 13-file ZIP; no separate Jackpot, obsolete generation sheet, PNG master, test or local preview; validate archive names and hashes |
+| Persistence, combat logic, units/groups, timers and endurance | No new behavior introduced | No change to authoritative gameplay state, settings, events or scheduling; existing applicable client proof gaps remain below |
+
+### Prior symbol spacing revision
+
+The matrix below scopes verification of the changed pixels. Local asset and
+browser checks are recorded under Local verification. Every native
+rendering check remains unverified on Retail live 12.1.0.69587, Interface 120100.
+
+| Context / transition | Applicability | Expected result / proof boundary |
+| --- | --- | --- |
+| Dice and coin atlas export | Required | Horizontal visible margins differ by at most one atlas pixel; translated RGBA pixels, size and vertical placement match the previous artwork |
+| Sword alpha, silhouette and spacing | Required | Complete blades and handles, transparent guard openings and clean edges; centered narrower silhouette remains readable against the dark well; record actual exported bounds |
+| Settled results, dim idle and all three reel columns | Required | Dice, coin and swords have balanced horizontal gaps; unchanged rum and Jackpot remain controls; inspect browser and native client at 60%, 100% and 180% scale |
+| Spin start, scrolling, staggered landing and adjacent rows | Required | Changed symbols retain their full horizontal silhouette without side bleed; vertical clipping occurs only at the fixed well edges; check each affected symbol entering, crossing and leaving each reel window, including reduced motion and repeated preview spins |
+| Native texture loading after restart, reload and Edit Mode entry/exit | Evidence-gated | Exact packaged textures load with correct alpha and orientation; samples and native results use the same corrected artwork; capture target build, scale and inspected errors |
+| PNG/TGA parity, repeat export and package | Required | Every RGBA pixel matches across formats; deterministic re-export; rum cell, cabinet and Jackpot preserved; same 14-file runtime allowlist with source artwork excluded |
+| API, combat restrictions, persistence, group/unit inputs and endurance | No new behavior introduced | Texture pixels add no game calls, protected operations, frames, events, timers or saved state; existing applicable client checks below remain unverified and are not replaced by browser evidence |
+
+### Existing behavior and client proof gaps
+
 | Context / transition | Applicability | Expected result / proof boundary |
 | --- | --- | --- |
 | All six non-winning pairs across all four ranks | Required | One die plus two distinct coin/cutlasses/rum symbols; two dice plus one of those; three dice and Jackpot chests unchanged; exhaustive authored-lane tests, native slot filters stay authoritative |
@@ -128,9 +185,9 @@ continuous-strip, landing, idle and restricted-context checks remain applicable.
 | Reduced-motion and repeated Edit Mode previews, exit/re-entry | Required | Each Test spin chooses a valid sample variation even without motion; leaving previews restores the prior live variation and native result; no settings/schema changes |
 | Construction cost and endurance | Evidence-gated | Finite prebuilt regions only, unchanged native slot/frame counts, no per-spin construction or per-frame randomization; profile added static artwork and repeated restricted-combat rolls in target client |
 | Jackpot-only center symbol and labeled preview | Required | Symbol 5 uses a standalone chest texture only in Jackpot center rows across authored lanes, with three visible centers and its labeled preview footer; native filters, 13 slots and vertical timing unchanged; exact-client proof pending |
-| Ordinary spin, idle and adjacent rows | Required | All decorative rows remain within symbols 1-4, including rum; no chest in non-Jackpot result strips, idle or Jackpot neighbors; all four ordinary atlas cells remain byte-identical |
+| Ordinary spin, idle and adjacent rows | Required | All decorative rows remain within symbols 1-4, including rum; no chest in non-Jackpot result strips, idle or Jackpot neighbors; the symbol-spacing revision preserves the rum cell while updating dice, coin and swords |
 | Jackpot entry, same/different reroll, expiry and reload with buff active | Evidence-gated | Chest follows the native Jackpot aura, rolls into place without an end-of-spin texture write, and disappears with the aura; delayed updates may preserve an old Jackpot temporarily; no claim of per-cast confirmation |
-| Chest alpha, scale and archive | Required | Standalone 512x512 32-bit TGA has transparent padding and complete silhouette; inspect at 60%, 100%, 180%; third runtime texture included with matching hash, source artwork excluded; actual game loading remains unverified |
+| Chest alpha, scale and archive | Required | Shared-atlas chest has preserved alpha, complete silhouette and transparent padding; inspect at 60%, 100%, 180%; source artwork and obsolete standalone texture excluded; actual game loading remains unverified |
 | Target build, corrected metadata, package installation | Required | Identity confirmed by user; revised ZIP loading and dependency readiness need client proof |
 | Clean install, valid settings, corrupt fields, previous MVP settings | Required | Preserve valid account-wide choices and repair only invalid fields; off-client checks plus reload/relog |
 | Future schema, including entering Edit Mode | Required | Leave original data unchanged; runtime defaults read-only; no editor mutation |
@@ -186,7 +243,7 @@ defect, not complete rank/combat/restriction coverage and not proof of the new f
 
 No user proof has yet been recorded for the continuous-strip seam correction.
 The prior rum-bottle replacement has local export/preview evidence below, not in-game
-proof. Randomized non-winning reels and the exclusive Jackpot chest still need native rendering,
+proof. The corrected symbol spacing, randomized non-winning reels and exclusive Jackpot chest still need native rendering,
 readability and restricted-context verification. Record client build,
 package identity, specialization/loadout, context, entry/exit transitions, screenshots
 and Lua/taint/blocked-action errors. Do not dump secret aura tables or widget contents.
@@ -208,7 +265,7 @@ not permission to reproduce its restricted operations in add-on Lua.
 | Selection/snapping | [system templates Lua][systems], [system templates XML][systemxml], [magnetism][magnetism], [guide templates][guides]: native selection/guides; placement-only adapter, no native layout registration or target anchoring |
 | Editor controls | [MinimalSlider][slider], [dialog templates][dialog]: native slider/steppers, input and translucent dialog styling; owned injected settings callbacks, no Settings category |
 | Frames/textures | [Frame API][frameapi], [region API][regionapi], [anchor/size API][resizeapi], [texture API][textureapi]: fixed outer wells alone clip continuous strips; ordinary carriers alone move; common lead-in and dim final idle rows are prebuilt; no native-child mutation after setup |
-| Exclusive chest texture | Build-matched SetTexture accepts the authored path and CLAMP/CLAMP/LINEAR strings; SetTexCoord accepts full 0-1 UVs. Both are called during artwork setup, before native access restrictions. Jackpot filtering, native footer binding and ordinary carrier movement are unchanged |
+| Consolidated symbol atlas | Build-matched SetTexture accepts the authored path and CLAMP/CLAMP/LINEAR strings but does not specify file dimensions; current [custom-texture guidance][texturefiles] requires power-of-two edges, so canonical PNGs are transparently padded to 1024x1024 at export. SetTexCoord accepts the authored rectangle UVs, with left/right/top/bottom order confirmed by Blizzard_SharedXML/NineSlice.lua. SetSize takes ordinary authored uiUnits during initialization, before native access restrictions. Provider initialization precedes DenyTaintedAccessWhenAurasAreSecret. Jackpot filtering, native footer binding and ordinary carrier movement are unchanged |
 | Cosmetic lane selection | [Scripted effects][random] uses bounded two-argument math.random. Both choices use authored integer bounds, never aura data, and the add-on does not reseed the shared generator. [Anchor API][resizeapi] SetPoint receives authored offsets on ordinary carriers only; native children remain untouched after provider initialization. Combat movement still requires exact-client proof |
 | Overlays | [Cinematic API][cinematic], [ActionBarController][actionbar]: cinematic/movie and pet-battle lifecycle inputs |
 | Blizzard direction | [June aura announcement][announcement]: custom filtered displays without exposing combat aura data |
@@ -238,6 +295,7 @@ not permission to reproduce its restricted operations in add-on Lua.
 [regionapi]: https://github.com/Gethe/wow-ui-source/blob/8ea15b61e45c0ed4eba01439c90757f86eb78d34/Interface/AddOns/Blizzard_APIDocumentationGenerated/SimpleScriptRegionAPIDocumentation.lua
 [resizeapi]: https://github.com/Gethe/wow-ui-source/blob/8ea15b61e45c0ed4eba01439c90757f86eb78d34/Interface/AddOns/Blizzard_APIDocumentationGenerated/SimpleScriptRegionResizingAPIDocumentation.lua
 [textureapi]: https://github.com/Gethe/wow-ui-source/blob/8ea15b61e45c0ed4eba01439c90757f86eb78d34/Interface/AddOns/Blizzard_APIDocumentationGenerated/SimpleTextureBaseAPIDocumentation.lua
+[texturefiles]: https://warcraft.wiki.gg/wiki/API:TextureBase_SetTexture
 [random]: https://github.com/Gethe/wow-ui-source/blob/8ea15b61e45c0ed4eba01439c90757f86eb78d34/Interface/AddOns/Blizzard_SharedXML/ScriptedAnimations/ScriptedAnimationEffects.lua
 [cinematic]: https://github.com/Gethe/wow-ui-source/blob/8ea15b61e45c0ed4eba01439c90757f86eb78d34/Interface/AddOns/Blizzard_APIDocumentationGenerated/CinematicDocumentation.lua
 [actionbar]: https://github.com/Gethe/wow-ui-source/blob/8ea15b61e45c0ed4eba01439c90757f86eb78d34/Interface/AddOns/Blizzard_ActionBarController/ActionBarController.lua
@@ -266,26 +324,42 @@ Base-duration data is not used to time live buffs.
 ## Local verification
 
 Browser evidence below was collected with a local-only web harness. Its page,
-server, snapshot exporter, captured frames and generated PNG previews are not
-versioned. The automated regression suite and package checks are retained.
+server, snapshot exporter and captured frames are not versioned. It reads the
+two canonical PNGs into transparent 1024x1024 canvases in memory, matching the
+runtime UV space without generating duplicate preview images.
+The automated regression suite, art export tests and package checks are retained.
 
-- Randomized non-winning reel revision: 40 off-client Lua tests and 28 isolated package checks passed; all 17 Lua files passed syntax checks
+- Current consolidation: 40 off-client Lua tests, 8 art export checks and 27 package checks passed
+- The art export fixtures compare every source pixel and generated padding pixel against independent RGBA patterns covering all alpha values; fresh -Check is read-only, stale pixel rejection leaves outputs untouched, and missing/wrong-size sources fail
+- Independent asset comparison verified all 851,968 retained RGBA pixels match the pre-consolidation baseline; all 458,752 discarded pixels and 196,608 unused atlas pixels have alpha zero. Minimum per-region transparent padding is 5/7/7/23/24 pixels. Every retained pixel's position matches the baseline at nominal sizes 112 and 22
+- Canonical cabinet.png is 1024x630 and symbols.png is 1024x832. Their retained RGBA pixels match the 1024x1024 predecessors exactly, and every discarded pixel was transparent. Export restores transparent rows through height 1024; both TGAs are byte-identical to the pre-trim runtime files, including headers, orientation and every RGBA pixel. The art directory contains only README.md, cabinet.png and symbols.png; media contains only the two runtime TGAs
+- Browser inspection covered shared-atlas ordinary results and Jackpot, the sample footer, dim idle, 60%/100%/180% display widths and the 1.23-second landing frame. No sampled horizontal cuts, atlas bleed or changed visible scale were observed; browser warning/error logs were empty. This does not prove native filtering or restricted-client behavior
+- Current consolidated-atlas ZIP contains 13 expected files, with every archived source hash verified and all source/obsolete/preview assets excluded. SHA256 F34AE15114A52B9375580C2BB81F2C1F9242BA69F0330CCCE64F3B9D757126FD. Built without installation or upload
+
+- Prior symbol-spacing revision on 2026-09-04: 40 off-client Lua tests and 28 isolated package checks passed; runtime Lua, TOC, settings and saved-state schema were unchanged
+- Dice moved 22 atlas pixels left and coin 14 right; every RGBA pixel matches its translated baseline, including translucent edge colors. Their sizes and vertical positions are unchanged. Dice bounds are x89..422/y62..428 (334x367), with 89/89 side margins; coin bounds are x75..435/y68..428 (361x361), with 75/76 margins
+- The prior spacing revision used built-in imagegen for more upright swords, then removed the generated checkerboard and guard backgrounds. Its original 512-pixel cell bounds were x111..400/y71..440 (290x370), with 111/111 side margins. Those visible pixels now live only in the canonical atlas; width remains 63.44 UI units instead of 91.22
+- The complete 1024x1024 PNG and uncompressed BGRA32 TGA match every RGBA pixel, with top-left origin 0x28 and transparent guard openings. The rum cell and cabinet/Jackpot runtime textures remain byte-identical to the baseline; a repeated export reproduced all six PNG/TGA files byte-for-byte
+- Browser inspection covered the corrected dice/coin/swords together at 60%, 100% and 180%, three-die Triple Threat, dim coin/swords/dice idle, the unchanged Jackpot control, slow playback and the 1.23-second landing frame. Inspected silhouettes have balanced side gaps without horizontal cuts. Repeated Test spin, result selection, timeline scrubbing and the local-only scale selector worked; browser warning/error logs were empty
+- The local preview scale selector changes only CSS display width; it neither changes exported Lua geometry nor simulates native scale, alpha, filtering or combat. Native TGA loading, 60%/100%/180% readability, restart/reload, Edit Mode transitions and restricted-context rendering remain unverified on Retail 12.1.0.69587
+- Prior symbol-spacing archive: 14 correctly named entries with all archived source hashes verified; SHA256 A3EA39FA758F6D0EEF961EAE9169A5BFEF6BF14559C77D0D60E8AD26697AD0A0. This is not the current consolidated-atlas package
+- Prior randomized non-winning reel revision: 40 off-client Lua tests and 28 isolated package checks passed; all 17 Lua files passed syntax checks
 - Randomized reel regressions cover all six ordered pairs across all four ranks, common lead-in art across every lane, reduced motion, duplicate/secret/unrelated cast payloads, visibility and restriction recovery, preview/live separation, retained landing offsets and full-symbol adjacent-lane clearance
 - The exporter captured 47 actual-Lua snapshots for each of six variants across four ranks and idle: 30 sequences total. Every final tree matches its own settled tree. Two exports were byte-identical, SHA256 075F0FC761326B75DFCAF6313AA72A9B53269F0723C4879EE2C29AA58D151E23
 - Export checks found 58,674 nodes with finite geometry, alpha and UV values and no native aura nodes. Forty focused non-browser DOM/canvas checks covered sample/variation choices, repeat randomness, normal/slow/restarted playback, scrubbing and reduced motion; these do not prove browser or game rendering
 - Browser inspection on 2026-09-04 showed different One of a Kind combinations rolling into their final symbols, two dice plus a coin for Double Trouble, unchanged three-die Triple Threat, unchanged three-chest Jackpot and chest-free dim idle. No adjacent-lane bleed or moving internal cut was observed in the inspected samples, and browser warning/error logs were empty
-- All six existing PNG/TGA exports and the TOC are byte-identical to the pre-randomization baseline. No texture generation, schema change or native aura-slot/frame increase was introduced
-- Current randomization archive: 14 correctly named entries with every archived source hash verified; SHA256 358CC70AB162598EB3BF1050E8670064837C20480F08D8AFE0C5273D32BA90C5. Built without upload or installation
+- For the prior randomization revision, all six PNG/TGA exports and the TOC were byte-identical to its baseline. That revision introduced no texture generation, schema change or native aura-slot/frame increase
+- Prior randomization archive: 14 correctly named entries with every archived source hash verified; SHA256 358CC70AB162598EB3BF1050E8670064837C20480F08D8AFE0C5273D32BA90C5. Built without upload or installation; this hash does not identify the symbol-spacing revision
 - Prior exclusive Jackpot chest revision: 35 off-client Lua tests and 28 isolated package checks passed
 - Prior construction/preview checks restricted the chest to three native Jackpot center rows and the labeled Jackpot preview centers/footer; the new lane-aware checks cover all seven authored chest centers with three visible at once
-- Third-texture fixtures prove missing or truncated jackpot.tga cannot replace an existing archive; the package allowlist includes all three runtime textures
+- Historical third-texture fixtures covered the former standalone Jackpot; current fixtures require only cabinet/symbols and prove stale jackpot.tga is excluded
 - Preview server/inline-script syntax checks pass; a local route check served exact jackpot.png bytes as image/png and rejected an unlisted asset
-- Genuine 1254x1254 RGBA chest source was generated with built-in imagegen; its alpha is preserved, with no color-key pass. The prompt and export process are retained in art/README.md
+- The historical 1254x1254 RGBA chest generation used built-in imagegen with real alpha; its prompt and former export process remain in Git history. The canonical atlas retains its approved exported pixels
 - Chest PNG and uncompressed 32-bit TGA are 512x512 and match every RGBA pixel; nonzero-alpha bounds are (98,72)-(435,436), with fully transparent outer 32-pixel padding. Twenty-one isolated pixels at alpha 1/255 are preserved and visually negligible
-- All four ordinary atlas cells and cabinet PNG/TGA are byte-identical to the pre-chest baseline; repeating export produced byte-identical output for all six PNG/TGA files
+- For the prior chest revision, all four ordinary atlas cells and cabinet PNG/TGA were byte-identical to its baseline; repeating export produced byte-identical output for all six PNG/TGA files
 - Prior chest revision: all 16 Lua files passed syntax checks; the Lua preview exporter captured 47 snapshots for each of four ranks and idle, with every final tree matching its settled tree
 - Prior browser inspection covered the three-chest Jackpot at rest and its staggered rolling landing, ordinary Double Trouble playback and chest-free dim idle; no browser warnings or errors were recorded. Actual native texture loading and 60%/100%/180% readability remain in-game proof gates
-- Prior chest archive: 14 correctly named entries with source hashes verified; SHA256 F605A662C38E9A3341C12DF76BDF7667DC7AC545F49EE866889A633967AC6981, not the current randomization build
+- Prior chest archive: 14 correctly named entries with source hashes verified; SHA256 F605A662C38E9A3341C12DF76BDF7667DC7AC545F49EE866889A633967AC6981, not the current symbol-spacing build
 - Prior rum-bottle revision on 2026-09-04 passed 33 Lua tests and 26 package checks, with a verified 13-file archive; these are historical, not current chest results
 - That prior atlas edit preserved the other three cells, cabinet and original source sheets; its 1024x1024 PNG/TGA matched pixel-for-pixel, and repeat export was byte-identical
 - The prior bottle had a 245x370 visible extent, clear padding and one connected alpha component; browser inspection covered scrolling and the then-three-bottle Jackpot without reported browser errors
@@ -295,7 +369,7 @@ versioned. The automated regression suite and package checks are retained.
 - Tests load the actual TOC order and add-on varargs; strict stubs reject unexpected calls, direct aura reads and result-child access after initialization
 - Focused snapping checks cover scale conversion, UIParent-only final anchors and restriction interruption; they do not emulate native target selection
 - Packaging checks Interface metadata, exact allowlisted paths/casing, texture headers/dimensions/pixel length and archived source hashes before replacing the generated ZIP
-- Expected current archive: 14 files under RollTheBonesSlots/, comprising eight Lua sources, TOC, README, changelog and three runtime TGA textures
+- Expected current archive: 13 files under RollTheBonesSlots/, comprising eight Lua sources, TOC, README, changelog and two runtime TGA textures
 - Source artwork, tests, screenshots, repository instructions and this validation record are excluded
 - No live-client rendering, taint, restricted encounters or exact-package installation is proven by these checks
 - Version remains dev, schema remains 1; no remote, push, tag, installation or publication

@@ -2,13 +2,6 @@
 /artifacts/
 *.tmp
 
-# Local browser preview and generated snapshots
-/art/preview.html
-/art/preview-frames.json
+# Local browser preview tooling; page and snapshots live under artifacts
 /scripts/preview-server.cjs
 /tests/export_preview.lua
-
-# Generated PNG previews; retain source sheets and runtime TGAs
-/art/cabinet.png
-/art/symbols.png
-/art/jackpot.png

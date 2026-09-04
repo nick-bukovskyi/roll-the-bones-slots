@@ -84,6 +84,7 @@ try {
     Set-Content -LiteralPath (Join-Path $fixtureDocsDirectory 'CHANGELOG.md') -Value 'Synthetic fixture changelog'
     Set-Content -LiteralPath (Join-Path $fixtureSourceDirectory 'Main.lua') -Value 'local addonName, ns = ...'
     Set-Content -LiteralPath (Join-Path $fixtureMediaDirectory 'source.png') -Value 'Excluded source art'
+    Set-Content -LiteralPath (Join-Path $fixtureMediaDirectory 'jackpot.tga') -Value 'Obsolete standalone texture'
     Set-Content -LiteralPath (Join-Path $fixtureArtDirectory 'mockup.png') -Value 'Excluded mockup'
     Set-Content -LiteralPath (Join-Path $fixtureTestsDirectory 'fixture.lua') -Value 'Excluded test'
     $validTga = [byte[]]::new(18 + 4 * 4 * 4)
@@ -92,11 +93,11 @@ try {
     $validTga[14] = 4
     $validTga[16] = 32
     $validTga[17] = 8
-    foreach ($name in @('cabinet.tga', 'symbols.tga', 'jackpot.tga')) {
+    foreach ($name in @('cabinet.tga', 'symbols.tga')) {
         [IO.File]::WriteAllBytes((Join-Path $fixtureMediaDirectory $name), $validTga)
     }
     $expectedPaths = @('RollTheBonesSlots.toc', 'README.md', 'docs/CHANGELOG.md', 'src/Main.lua', `
-        'media/cabinet.tga', 'media/symbols.tga', 'media/jackpot.tga')
+        'media/cabinet.tga', 'media/symbols.tga')
     foreach ($interface in @('123456', '654321')) {
         Set-Content -LiteralPath $fixtureToc -Value @("## Interface: $interface", '## Version: fixture', 'src\Main.lua')
         & $fixtureScript | Out-Null
@@ -107,6 +108,9 @@ try {
                 if (@($archive.Entries | Where-Object { $_.FullName -ceq "RollTheBonesSlots/$path" }).Count -ne 1) {
                     throw "Missing or incorrectly cased fixture entry: $path"
                 }
+            }
+            if ($archive.GetEntry('RollTheBonesSlots/media/jackpot.tga')) {
+                throw 'Obsolete standalone Jackpot texture leaked into the archive'
             }
             $entry = $archive.GetEntry('RollTheBonesSlots/RollTheBonesSlots.toc')
             if (-not $entry) { throw 'Packaged TOC is missing' }
@@ -121,7 +125,7 @@ try {
 
     # Invalid assets fail before replacing a known-good ZIP or leaving temporary output
     $previousHash = (Get-FileHash -LiteralPath $existingArchive -Algorithm SHA256).Hash
-    foreach ($name in @('cabinet.tga', 'symbols.tga', 'jackpot.tga')) {
+    foreach ($name in @('cabinet.tga', 'symbols.tga')) {
         $assetPath = Join-Path $fixtureMediaDirectory $name
         $omittedPath = Join-Path $fixtureMediaDirectory "$name.omitted"
         Move-Item -LiteralPath $assetPath -Destination $omittedPath
@@ -160,12 +164,12 @@ try {
         $checks++
     }
     [IO.File]::WriteAllBytes($cabinetPath, $validTga)
-    $jackpotPath = Join-Path $fixtureMediaDirectory 'jackpot.tga'
-    $truncatedJackpot = [byte[]]$validTga.Clone()
-    [Array]::Resize([ref]$truncatedJackpot, $validTga.Length - 1)
-    [IO.File]::WriteAllBytes($jackpotPath, $truncatedJackpot)
-    Assert-PackageRejected 'truncated Jackpot texture' 'Truncated TGA pixel data'
-    [IO.File]::WriteAllBytes($jackpotPath, $validTga)
+    $symbolsPath = Join-Path $fixtureMediaDirectory 'symbols.tga'
+    $truncatedSymbols = [byte[]]$validTga.Clone()
+    [Array]::Resize([ref]$truncatedSymbols, $validTga.Length - 1)
+    [IO.File]::WriteAllBytes($symbolsPath, $truncatedSymbols)
+    Assert-PackageRejected 'truncated symbol atlas' 'Truncated TGA pixel data'
+    [IO.File]::WriteAllBytes($symbolsPath, $validTga)
     $checks++
     Add-Content -LiteralPath $fixtureToc -Value 'media/cabinet.tga'
     Assert-PackageRejected 'duplicate runtime media' 'Duplicate package path'

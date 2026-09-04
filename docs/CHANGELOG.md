@@ -22,13 +22,14 @@
 
 ### Fixed
 
+- Dice and coins sit evenly between the reel edges, and narrower crossed swords leave more space on both sides
 - Removed the moving cut through lower reel symbols as they settle into place
 - Buff details stay inside the chest instead of drifting beside it
 - Corrected missing compatibility metadata that made the initial package appear as Incompatible on Retail 12.1.0; replace the package and restart WoW
 
 ### Known Issues
 
-- Randomized non-winning symbols, the exclusive Jackpot chest, continuous-strip clipping fix and full result, idle and Edit Mode checks still need in-game verification on Retail 12.1.0.69587
+- Symbol spacing, randomized non-winning symbols, the exclusive Jackpot chest, continuous-strip clipping fix and full result, idle and Edit Mode checks still need in-game verification on Retail 12.1.0.69587
 - Combat restrictions may skip a cosmetic spin; settled results never come from a guessed roll
 - Delayed buff updates or rapid rerolls can still change symbols during or after landing; the animation cannot guarantee a blink-free transition
 - Buff expiration and recovery in restricted encounters remain unverified

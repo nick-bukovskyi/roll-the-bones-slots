@@ -1,84 +1,81 @@
 # Machine artwork
 
-Generated with the built-in imagegen tool on 2026-09-04 from the approved wooden Outlaw mockup. Only the cabinet and reel symbols are authored textures. Blizzard supplies fonts, settings controls, selection handles and snap guides.
+## Authoritative assets
 
-## Files
+- `cabinet.png`: finished transparent 1024x630 cabinet
+- `symbols.png`: finished transparent 1024x832 atlas containing all five reel symbols
+- `README.md`: this layout and editing guide
 
-- `cabinet-source.png`, `symbols-source.png`: retained original generated sheets
-- `rum-source.png`: retained generated edit; only its lower-right bottle cell is used
-- `jackpot-source.png`: retained standalone generated open-chest sprite with genuine alpha
-- `cabinet.png`, `symbols.png`, `jackpot.png`: generated PNG equivalents, ignored by Git
-- `../media/jackpot.tga`: standalone 512x512 uncompressed 32-bit BGRA Jackpot texture
-- `../media/cabinet.tga`, `../media/symbols.tga`: packaged 1024x1024 uncompressed 32-bit BGRA textures
-- `../scripts/export-art.ps1`: reproducible mechanical extraction and TGA conversion
+Edit these PNGs directly. They are the only artwork inputs. The old generation
+sheets and separate icon sources have been removed; they are not needed to build.
+Existing tracked originals remain available in Git history. The consolidation
+copied the approved pixels without resizing, recoloring or changing visible placement.
 
-Rebuild textures from the repository directory with `./scripts/export-art.ps1` on
-Windows with PowerShell 7. The original source sheets, exporter and runtime TGAs
-are versioned. Generated PNGs and the local browser preview, server, snapshot
-exporter and captured frames are deliberately excluded from Git. A clean clone
-contains the add-on and regression tests, not that temporary web harness.
+`../media/cabinet.tga` and `../media/symbols.tga` are generated runtime files,
+not alternative masters. The exporter copies each PNG to the top-left of a
+transparent 1024x1024 TGA. This keeps both runtime texture edges at powers of two,
+as required by [current custom-texture guidance](https://warcraft.wiki.gg/wiki/API:TextureBase_SetTexture), while leaving unrelated padding
+out of the editable artwork. Every source pixel is unchanged and every generated
+padding pixel is transparent. The local browser creates the same square runtime
+canvas in memory from the canonical PNGs.
+Temporary preview HTML and frame snapshots live under `../artifacts/preview/`
+and are excluded from Git and the player package.
 
-The generator produced opaque checkerboard sheets despite the transparency request. The requested texture cutting removes background-connected neutral checkerboard and the two enclosed sword-guard openings. The cabinet is cropped to its silhouette and padded to a power-of-two texture; its 630-pixel used height is mapped in Art.lua. No baked-in label or settings artwork is included. Original source files are preserved.
+## Atlas layout
 
-The rum-bottle replacement also used the built-in imagegen tool. Its source is an
-opaque checkerboard edit, so export cuts only its lower-right cell, centers the
-bottle at a maximum 370-pixel extent, and replaces only that cell in the original
-atlas. The original dice, gold coin and cutlasses are preserved, not regenerated.
-Sources with four non-opaque corners retain their alpha, including tiny nonzero
-corner alpha. The chest uses genuine generated transparency, centered to the same
-maximum 370-pixel extent within a 512-pixel square as the rum bottle. It does not
-change the ordinary atlas. Symbol five is exclusive to the Jackpot centers and its
-labeled editor sample; ordinary spin, idle and adjacent rows stay within symbols
-one through four. The native buff icon is unchanged.
+Pixel rectangles use top-left origin and exclusive right/bottom edges.
+`src/Art.lua` owns the runtime rectangle mapping.
 
-Non-winning randomization reuses these assets without altering pixels. Reel one
-has one prebuilt strip; reels two and three each have three side-by-side strips
-spaced 128 UI units apart. The ordinary carrier selects a strip while the fixed
-window clips its neighbors. The local-only browser validation captured all six distinct filler pairs
-from the Lua animation and selects a captured variation for each Test/Slow spin;
-random repeats were allowed. No browser-generated symbol layout substituted for
-the Lua artwork, and no native aura data is included in the captures.
+| ID | Symbol | X | Y | Width | Height |
+| --- | --- | ---: | ---: | ---: | ---: |
+| 1 | Bone die | 0 | 0 | 344 | 416 |
+| 2 | Gold skull coin | 344 | 0 | 376 | 416 |
+| 3 | Crossed cutlasses | 720 | 0 | 304 | 416 |
+| 4 | Rum bottle | 0 | 416 | 512 | 416 |
+| 5 | Jackpot chest | 512 | 416 | 512 | 416 |
 
-## Cabinet prompt
+Each rectangle is a centered crop of its original 512x512 symbol canvas.
+Only transparent padding was removed. At nominal size 112, a sprite's actual
+rectangle is `112 * width / 512` by `112 * height / 512`; its center stays fixed.
+This preserves the exact visible size and position, including the prior centering
+fix. Retain the transparent gutters inside each rectangle so linear filtering
+cannot sample neighboring artwork. The atlas ends at the bottom edge of those
+gutters; it has no unrelated reserve below them.
 
-Use case: background-extraction / precise-object-edit.
-Asset type: production game UI cabinet texture with genuine transparent alpha, not a mockup.
-Input image 1 is the approved design edit target. Extract ONLY the large upper wooden slot machine, completely discard the lower examples, settings window, words outside the machine, and background. Preserve exactly its dark weathered treasure chest oak, narrow antique dark gold edges, tiny skull corner patches, modest curved side braces with cutlass engravings, three straight reel wells, and integrated bottom result plaque. No redesign, no new crest or lever.
-Remove ALL text, all dice, coins, swords and other reel symbols, and the small footer icon. Keep the top title area and bottom footer plaque as empty dark wooden backgrounds. Keep the THREE reel interiors empty dark subtly textured black vertical wells, with their existing thin brass separators. They must contain NO icons, NO text. They are opaque dark backing for moving separate sprites.
-Entire outside silhouette must be genuinely transparent, not black and not a checkerboard painted into the image. Orthographic front view, unchanged proportions, generous small transparent margin about 2 percent only; one machine only filling canvas. High quality sharp painted World of Warcraft UI materials. Intended cropped aspect around 1.65:1, request 1536x1024 if needed, maintain machine proportions rather than stretching. No settings or controls.
+Jackpot shares the atlas, but remains symbol 5 exclusively for native Jackpot
+centers and the labeled sample. Decorative/idle rows use symbols 1 through 4.
+The native buff footer continues to use Blizzard's icon.
 
-## Symbol-sheet prompt
+## Editing and export
 
-Use case: stylized-concept.
-Asset type: production transparent game UI sprite atlas, one square1024x1024 sheet.
-Input image1 is visual/material reference ONLY, not a layout to reproduce. Extract the look of its reel symbols into four isolated hand-painted World of Warcraft Outlaw rogue symbols on genuinely transparent alpha. Exactly a perfectly aligned2x2 grid of equal512x512 cells: upperleft ivory bone gambling die with dark red top and bone cross marks; upperright heavy antique gold coin with embossed skull face; lowerleft crossed dark silver cutlasses with brown handles; lowerright ivory skull in a round dark brass medallion, no green glow. Each symbol centered exactly in its cell, max visible bounds360x360, consistent crisp lighting/painted style and scale. All four complete fully visible, generous transparent space around every symbol. No cell borders, no labels or numbers, no slots, no machine, no settings, no background texture, no drop shadow beyond each icon, no checkerboard painted into RGB. This is a sprite sheet for moving reels, not a presentation mockup. Match the approved reference symbols closely.
+1. Edit only the intended symbol rectangle in `symbols.png`, preserving alpha,
+   transparent gutters and the other symbols. Do not recreate a source-sheet overlay chain.
+2. Run `pwsh -NoProfile -File scripts/export-art.ps1` from the repository root.
+   The exporter copies the PNG pixels to an uncompressed BGRA32 TGA with top-left
+   origin, then adds transparent bottom rows to reach the required 1024x1024
+   runtime size. It does not key backgrounds, crop or resize artwork, relocate
+   icons or modify the PNGs.
+3. Run `pwsh -NoProfile -File scripts/export-art.ps1 -Check` to reject missing or
+   stale runtime exports without changing files.
+4. Run the Lua, art-export and package checks, then build the development ZIP.
+   Commit the canonical PNGs and their matching runtime exports together when committing is authorized.
 
-## Rum-bottle edit prompt
+All five symbols use one 4 MiB texture instead of the previous 4 MiB atlas plus
+1 MiB chest texture. The cabinet stays at 4 MiB. These are uncompressed pixel
+payloads, not a measured GPU-memory or frame-rate improvement.
 
-Mode: built-in imagegen. Input: `symbols.png` before replacement. Output source:
-`rum-source.png`. This prompt is retained verbatim:
+## Artwork provenance
 
-Use case: precise-object-edit.
-Asset type: production World of Warcraft Outlaw rogue reel-symbol sprite atlas.
-Input image 1 is the EDIT TARGET: the existing transparent 1024x1024 atlas.
-Replace ONLY the lower-right skull medallion/coin with a pirate rum bottle. Keep the upper-left bone die, upper-right gold skull coin, and lower-left crossed cutlasses unchanged in appearance, position and scale. Keep the exact 2x2 equal-cell atlas layout.
-Bottle: a stout, broad-shouldered amber-brown glass rum bottle, a short neck and cork, worn dark-red wax seal and cloth around the neck, restrained antique-gold accents, and a weathered parchment label with a simple small pirate skull motif but NO lettering. No round coin or round medallion behind it. Slight lively tilt, entire bottle clearly visible. Its compact silhouette should read immediately at small in-game icon size and feel equally substantial to the other symbols.
-Match the existing crisp hand-painted Warcraft UI style, weathered materials, warm upper-left highlights and dark outline. Not photorealistic, not flat vector art. Lower-right bottle centered within the 512x512 cell, roughly 370 pixels high and at most 370 pixels wide, with generous clear padding, no cropping and no overlap into other cells.
-Genuinely transparent alpha around all symbols. No opaque white/black/checkerboard background, no drop shadow outside the object, no scenery, no frame, no captions, no watermark.
-Preserve all other artwork and the square canvas.
+The cabinet and icons were generated with built-in imagegen on 2026-09-04 and
+approved through iterative previews. Consolidation performs no new generation.
+The original cabinet/symbol/rum/chest prompts are recorded in Git history.
+The latest narrower-sword prompt is retained below for reference; future editing
+uses the finished atlas, not a separate sword source.
 
-## Jackpot chest prompt
-
-Mode: built-in imagegen, new standalone sprite. The existing atlas in the
-conversation was a style reference, not an edit target. Source saved as
-`jackpot-source.png`; final exports are `jackpot.png` and `../media/jackpot.tga`.
-This prompt is retained verbatim:
-
-Use case: stylized-concept
-Asset type: one standalone transparent game UI reel-symbol sprite for a World of Warcraft Outlaw Rogue treasure-chest slot-machine addon
-Primary request: an open pirate treasure chest overflowing with gold coins and a few rich emerald-green gemstones, the exclusive Jackpot symbol
-Style/medium: hand-painted fantasy game inventory icon, matching the existing bone dice, worn gold skull coin, dark steel cutlasses and amber rum bottle artwork in the conversation. Chunky readable shapes, bevelled worn gold fittings, deep carved dark-brown wood, painterly highlights and dark recesses. World of Warcraft UI aesthetic, not photorealistic, not modern casino graphics
-Composition/framing: exactly one chest centered, subtle three-quarter view, lid clearly open, compact approximately square silhouette, generous transparent padding on all four sides. Whole object visible. Strong readable shape at 80 pixels. Treasure mostly contained in the chest, no scattered separate props
-Lighting/mood: warm restrained gold highlights from upper left, emerald accents, substantial dark edge contrast. No surrounding glow or shadow cloud
-Scene/backdrop: genuinely transparent background with clean alpha edges; NOT a painted checkerboard, no ground or scene, no border or badge
-Constraints: one standalone chest only, no dice, no bottle, no swords, no coin medallion, no UI cabinet or settings. No letters, words, numbers, logos or watermark. Do not reproduce the reference atlas. Deliver a clean square raster sprite with real transparency
+Use case: precise-object-edit
+Asset type: one standalone transparent production game UI reel-symbol sprite.
+Input image 1 is a style and object reference: the lower-left crossed cutlasses in the existing atlas. Recreate ONLY those two crossed cutlasses as a compact, narrower, more upright X. Do not reproduce the atlas or any other symbols.
+Primary request: correct the overly wide crossed-swords silhouette so it fits comfortably in a narrow slot-machine reel beside the existing dice and coin. The complete pair should be slightly taller than wide, visible silhouette width about 90 percent of its height. Bring the blade tips and handle ends inward by making the crossed blades more upright, not by distorting their thickness. Both swords equal in visual weight with balanced left/right edges, pair centered horizontally and vertically.
+Keep the reference's distinctive curved dark-steel cutlasses, worn bright silver cutting edges and little blade notches, antique-gold knuckle guards, brown wrapped grips, warm upper-left painterly highlights, dark readable outline, restrained Warcraft Outlaw pirate palette. Preserve the same hand-painted fantasy inventory-icon material style. No glow, no ornate new emblem.
+Composition: exactly one crossed pair, entire tips and handles visible, centered on square canvas, generous transparent padding on all sides. It must read crisply when displayed roughly 75 pixels wide.
+Background: genuine transparent alpha, including the openings inside both knuckle guards and between the blades. No painted checkerboard, no opaque black or white background, no scenery, no ground or external cast shadow, no frame, no text, no watermark, no dice, coin, bottle or chest.

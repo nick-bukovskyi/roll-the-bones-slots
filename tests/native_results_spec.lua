@@ -201,9 +201,12 @@ return function(test, H, loadAddon)
                 for row = -1, ns.Art.SpinRows + 1 do
                     local texture = assert(rows[row], "missing continuous native row")
                     local idle = assert(idleRows[row], "missing continuous idle row")
-                    eq(texture.width, ns.Art.SymbolSize); eq(texture.height, ns.Art.SymbolSize)
+                    -- Cropped atlas regions retain the original pixels-per-UI-unit ratio
+                    local uv = texture.texCoords
+                    eq(texture.width / (uv[2] - uv[1]), ns.Art.SymbolSize * 2)
+                    eq(texture.height / (uv[4] - uv[3]), ns.Art.SymbolSize * 2)
                     if row > -1 then
-                        assert(rectangle(texture).top <= rectangle(rows[row - 1]).bottom, "gap between neighboring texture bounds")
+                        eq(texture.points.CENTER[4] - rows[row - 1].points.CENTER[4], -ns.Art.Pitch)
                     end
                     if row >= 2 then
                         eq(texture.alpha, 1); eq(idle.alpha, 1)

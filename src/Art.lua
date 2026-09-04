@@ -8,6 +8,11 @@ local CABINET_HEIGHT = 630 / 1024
 local WELLS = { { 53, 39, 91, 153 }, { 153, 39, 94, 153 }, { 258, 39, 91, 153 } }
 local IDLE_SYMBOLS = { 2, 3, 1 }
 local ORDINARY_SYMBOL_COUNT = 4
+-- Centered crops of the original 512-pixel symbol canvases, preserving visible scale
+local SYMBOL_RECTS = {
+    { 0, 0, 344, 416 }, { 344, 0, 376, 416 }, { 720, 0, 304, 416 },
+    { 0, 416, 512, 416 }, { 512, 416, 512, 416 },
+}
 
 local function Texture(parent, file, layer)
     local texture = parent:CreateTexture(nil, layer or "ARTWORK")
@@ -31,22 +36,13 @@ function Art.Cabinet(parent)
     Art.Label(parent, "Awaiting a result", "GameFontDisable", 56, 207, 288, 22)
 end
 
-function Art.SetSymbol(texture, symbol)
-    -- Authored IDs only; the native slot decides whether this artwork is visible
-    if symbol == 5 then
-        texture:SetTexture(MEDIA .. "jackpot.tga", "CLAMP", "CLAMP", "LINEAR")
-        texture:SetTexCoord(0, 1, 0, 1)
-        return
-    end
-    texture:SetTexture(MEDIA .. "symbols.tga", "CLAMP", "CLAMP", "LINEAR")
-    local column, row = (symbol - 1) % 2, math.floor((symbol - 1) / 2)
-    texture:SetTexCoord(column / 2, (column + 1) / 2, row / 2, (row + 1) / 2)
-end
-
 function Art.Symbol(parent, symbol, size)
-    local texture = parent:CreateTexture(nil, "ARTWORK")
-    texture:SetSize(size, size)
-    Art.SetSymbol(texture, symbol)
+    -- Authored IDs only; the native slot decides whether this artwork is visible
+    local rect = SYMBOL_RECTS[symbol]
+    local texture = Texture(parent, "symbols.tga")
+    texture:SetSize(size * rect[3] / 512, size * rect[4] / 512)
+    texture:SetTexCoord(rect[1] / 1024, (rect[1] + rect[3]) / 1024,
+        rect[2] / 1024, (rect[2] + rect[4]) / 1024)
     return texture
 end
 
@@ -114,15 +110,20 @@ function Art.Footer(parent, definition)
     backing:SetSize(292, 26)
     backing:SetTexCoord(53 / Art.Width, 345 / Art.Width,
         205 / Art.Height * CABINET_HEIGHT, 231 / Art.Height * CABINET_HEIGHT)
-    local icon = parent:CreateTexture(nil, "ARTWORK")
-    icon:SetSize(22, 22)
-    icon:SetPoint("TOPLEFT", parent, "TOPLEFT", 60, -207)
+    local icon
+    if definition then
+        icon = Art.Symbol(parent, definition.symbols[1], 22)
+        icon:SetPoint("CENTER", parent, "TOPLEFT", 71, -218)
+    else
+        icon = parent:CreateTexture(nil, "ARTWORK")
+        icon:SetSize(22, 22)
+        icon:SetPoint("TOPLEFT", parent, "TOPLEFT", 60, -207)
+    end
     local name = Art.Label(parent, "", "GameFontNormal", 88, 207, 198, 22)
     name:SetJustifyH("LEFT")
     local duration = Art.Label(parent, "", "GameFontHighlight", 288, 207, 55, 22)
     duration:SetJustifyH("RIGHT")
     if definition then
-        Art.SetSymbol(icon, definition.symbols[1])
         name:SetText(definition.label)
         duration:SetText("26 s")
     end
