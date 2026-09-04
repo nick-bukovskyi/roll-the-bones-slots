@@ -167,6 +167,12 @@ function H.install()
     function methods:SetDontSavePosition(value) check(self); H.eq(value, true) end
     function methods:RegisterForDrag(value) check(self); H.eq(value, "LeftButton") end
     function methods:EnableMouse(value) check(self); assert(type(value) == "boolean"); self.mouse = value end
+    function methods:SetHitRectInsets(left, right, top, bottom, ...)
+        check(self); H.eq(select("#", ...), 0)
+        assert(type(left) == "number" and type(right) == "number"
+            and type(top) == "number" and type(bottom) == "number")
+        self.hitRectInsets = { left, right, top, bottom }
+    end
     function methods:StartMoving() check(self); H.eq(self.movable, true); self.moving = true end
     function methods:StopMovingOrSizing() check(self); self.moving = false end
     function methods:SetAutoFocus(value) check(self); H.eq(value, false) end
@@ -294,6 +300,7 @@ function H.install()
         end
         H.auraSlotCount = H.auraSlotCount + 1
         local button = object("AuraButton", self)
+        button.mouse = true
         options.initializeFrame(button)
         assert(next(button.scripts) == nil, "native aura buttons must not gain script handlers")
         assert(rawget(button, "animationGroups") == nil, "native aura buttons must not own add-on animations")

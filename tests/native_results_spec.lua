@@ -93,8 +93,12 @@ return function(test, H, loadAddon)
                 end
                 function buttonMethods:SetCancelAuraButtons(value) eq(value, nil); prepared.cancel = true end
                 function buttonMethods:SetHideTooltipInCombat(value) eq(value, true); prepared.tooltip = true end
+                function buttonMethods:EnableMouse(value)
+                    eq(footer, false); eq(value, false); prepared.mouseDisabled = true
+                end
                 function buttonMethods:SetSize(width, height)
                     assert(prepared.anchor and prepared.cancel and prepared.tooltip)
+                    if not footer then eq(prepared.mouseDisabled, true) end
                     eq(width, 91); eq(height, 153)
                 end
                 options.initializeFrame(button)
@@ -130,7 +134,40 @@ return function(test, H, loadAddon)
         eq(totalSlots, 13); eq(#ns.Game.Results, 4)
     end)
 
-    test("native result strips cover dim idle artwork and the native footer covers the waiting message", function()
+    test("only the live buff row accepts hover with either duration bar preference", function()
+        for _, scale in ipairs({ 0.6, 1, 1.8 }) do
+            for _, showBar in ipairs({ true, false }) do
+                local ns = loadAddon({ scale = scale, durationBarEnabled = showBar })
+                H.fire("ADDON_LOADED", "RollTheBonesSlots")
+                H.loggedIn = true; H.fire("PLAYER_LOGIN")
+                local footer
+                for _, slot in ipairs(H.nativeSlots) do
+                    local button = slot.button
+                    if button.bindings.SetSpellName then
+                        assert(not footer, "only one native footer may accept hover")
+                        footer = slot
+                        eq(button.mouse, true)
+                        local row = rectangle(button.children[1])
+                        local insets = assert(rawget(button, "hitRectInsets"), "footer hover covers the cabinet")
+                        eq(insets[1], row.left); eq(button.width - insets[2], row.right)
+                        eq(insets[3], row.top); eq(button.height - insets[4], row.bottom)
+                    else
+                        eq(button.mouse, false)
+                    end
+                end
+                assert(footer, "live buff row needs its native tooltip")
+                eq(footer.container.enabled, true)
+                local slots = #H.nativeSlots
+                H.enterEditMode(); eq(footer.container.enabled, false)
+                H.exitEditMode(); eq(footer.container.enabled, true)
+                H.fire("PLAYER_LEAVING_WORLD"); eq(footer.container.enabled, false)
+                H.fire("PLAYER_ENTERING_WORLD", false, false); eq(footer.container.enabled, true)
+                eq(#H.nativeSlots, slots)
+            end
+        end
+    end)
+
+    test("native result strips cover dim idle artwork and the native footer covers the idle message", function()
         local ns = loadAddon()
         ns.Config.Initialize(nil); ns.Machine.Initialize()
         eq(#H.nativeSlots, 18)
@@ -155,15 +192,15 @@ return function(test, H, loadAddon)
                 local foreground = binding.SetSpellName.parent
                 eq(foreground.parent, button)
                 eq(binding.SetIcon.parent, foreground); eq(binding.SetDurationText.parent, foreground)
-                local waiting
+                local idleLabel
                 for _, child in ipairs(ns.Machine.GetFrame().children) do
-                    if rawget(child, "text") == "Awaiting a result" then waiting = child end
+                    if rawget(child, "text") == "Try yer luck, matey!" then idleLabel = child end
                 end
-                assert(waiting, "idle footer needs honest no-result text")
-                local coverPoint, labelPoint = backing.points.TOPLEFT, waiting.points.TOPLEFT
+                assert(idleLabel, "idle footer needs the pirate invitation")
+                local coverPoint, labelPoint = backing.points.TOPLEFT, idleLabel.points.TOPLEFT
                 assert(coverPoint[3] <= labelPoint[3] and -coverPoint[4] <= -labelPoint[4])
-                assert(coverPoint[3] + backing.width >= labelPoint[3] + waiting.width)
-                assert(-coverPoint[4] + backing.height >= -labelPoint[4] + waiting.height)
+                assert(coverPoint[3] + backing.width >= labelPoint[3] + idleLabel.width)
+                assert(-coverPoint[4] + backing.height >= -labelPoint[4] + idleLabel.height)
             end
             eq(button.sealed, true)
         end

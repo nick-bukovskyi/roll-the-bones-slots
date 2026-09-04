@@ -6,6 +6,12 @@ An optional worn-gold bar fills the footer row behind the name and timer and
 drains as the buff expires. Its smaller buff icon sits inside with padding.
 Cast using your normal action buttons.
 
+Hover the bottom buff row for its native tooltip, including when the duration bar
+is turned off. The reels and cabinet trim do not trigger tooltips. On the target
+build, this tooltip stays beside the chest; using the system's configured HUD
+tooltip position is blocked by the native aura-tooltip API. Tooltips remain
+hidden in combat.
+
 ## Development build for testing
 
 Targets **Retail live 12.1.0.69587, Interface 120100 only**. The user confirmed this
@@ -82,7 +88,7 @@ Edit Mode Test spin previews the same treatment. Turning animation off, resettin
 defaults, hiding the display or leaving preview cancels pending lights immediately.
 The live name and countdown remain separate from the spinning reels. Settled without an
 active result, the chest shows fixed dim coin, swords and dice symbols with
-**Awaiting a result**, not a random or winning combination.
+**Try yer luck, matey!**, not a random or winning combination.
 
 The add-on does not read hidden aura values or calculate the result from the cast.
 Lighting follows the result Blizzard is currently displaying on a fixed schedule
@@ -101,6 +107,11 @@ Jackpot-specific sounds, reroll advice, history and chat messages are not includ
 
 ## First gameplay checks
 
+- Hover across the bottom row with the duration bar on and off, then leave over
+  each reel and the trim; check that only the row opens the tooltip and leaving
+  hides it, including at 60%, 100% and 180% scale
+- With a tooltip open, test buff expiry, entering combat, hiding the UI and Edit
+  Mode; verify it clears and returns on a fresh eligible hover afterward
 - Compare all four settled results and timers with Blizzard's buff display
 - Check that the gold bar drains from full to empty, updates on rerolls and Keep It
   Rolling, and disappears at expiry; reload with a buff active to check its remaining fill
@@ -112,7 +123,7 @@ Jackpot-specific sounds, reroll advice, history and chat messages are not includ
 - Repeat One of a Kind and Double Trouble rolls with animation on and off; only non-winning symbols should vary
 - Watch that a chosen variation stays put after landing, hide/show and Edit Mode previews
 - Try a rapid reroll during landing; note delayed symbol changes or flashes
-- Check missing/expired buffs return to dim symbols and Awaiting a result
+- Check missing/expired buffs return to dim symbols and Try yer luck, matey!
 - Reload or relog with an active buff; check that it returns without a false spin
 - Test sustained combat and a restricted instance, then leave and check recovery
 - Try Edit Mode selection, Test spin, reset, dragging and snapping at 60%, 100% and 180%

@@ -44,7 +44,7 @@ function Art.Cabinet(parent)
     texture:SetAllPoints(parent)
     texture:SetTexCoord(0, 1, 0, CABINET_HEIGHT)
     Art.Label(parent, "Roll the Bones", "GameFontNormalLarge", 56, 11, 288, 22)
-    Art.Label(parent, "Awaiting a result", "GameFontDisable", 56, 207, 288, 22)
+    Art.Label(parent, "Try yer luck, matey!", "GameFontDisable", 56, 207, 288, 22)
 end
 
 function Art.Symbol(parent, symbol, size)
@@ -278,6 +278,8 @@ end
 
 function Art.NativeFooter(button)
     local icon, name, duration = Art.Footer(button)
+    button:SetHitRectInsets(FOOTER.x, Art.Width - FOOTER.x - FOOTER.width,
+        FOOTER.y, Art.Height - FOOTER.y - FOOTER.height)
     button:SetIcon(icon)
     button:SetSpellName(name)
     button:SetDurationText(duration)

@@ -1,6 +1,7 @@
 # Development validation
 
-Status: **Implemented, Unverified** for the optional duration bar and cast-timed lighting behind the result symbols.
+Status: **Implemented, Unverified** for the pirate idle message, footer-only tooltip hover, the optional duration bar and cast-timed lighting behind the result symbols.
+The requested system tooltip position is **Blocked** by the target build's native aura tooltip boundary.
 The user confirmed no in-game errors with the preceding preview-only repair.
 Source and off-client checks do not establish release readiness. No live-client
 installation, game control, CVar changes or real SavedVariables edits were performed
@@ -16,6 +17,51 @@ for this feature.
 - IronfurTracker informed the native-styled editor, ownership and packaging patterns; its dependencies, Interface declaration and optional third-party integrations were not copied
 
 ## Behavior and ownership
+
+### Pirate idle message, footer tooltip hover and system-position limitation
+
+The idle footer says "Try yer luck, matey!" using the existing font and geometry.
+This invitation does not report a pending cast, cooldown readiness or a live
+result. The dim idle artwork and native footer occlusion remain unchanged.
+
+The reel buttons stop accepting mouse input. The live text footer keeps its
+native hover behavior, with hit insets derived from the existing 301-by-26 buff
+row. Its icon, name, countdown and full row remain hoverable with the duration
+bar enabled or disabled. The separate duration bar and win lights remain
+noninteractive. No input scripts, hooks, timers, aura reads or new frames are
+added, and the existing native hide-in-combat policy remains in force.
+
+The source audit uses the recorded Retail live 12.1.0.69587 / Interface 120100
+GetBuildInfo evidence and rechecks the pinned mirror's version.txt.
+[EnableMouse][regionapi] and [SetHitRectInsets][frameapi] take non-secret authored
+values and are protected methods; they are configured only in the existing
+[frame-provider initialization callback][provider], before access restrictions
+and aura assignment. No restricted result button is read or changed afterward.
+
+[AuraButton][aurabutton] exposes SetTooltipAnchorPoint with a fixed anchor name
+and optional numeric offsets relative to the aura button. Its hover path uses
+the private AuraButtonTooltip. The [tooltip definition][auratooltip] is forbidden
+and hidden from the global environment; it inherits SharedTooltipArtTemplate,
+which has no default-anchor handler. The [public inbound API][aurainbound]
+exports tooltip styling but no positioning callback or tooltip replacement.
+[GameTooltip_SetDefaultAnchor][sharedtooltip] uses the configured HUD tooltip
+container, but this add-on cannot pass the private aura tooltip to that function.
+ANCHOR_NONE and ANCHOR_PRESERVE do not select the system position. The footer
+therefore retains its existing native ANCHOR_BOTTOMLEFT anchor. System-position
+support is blocked; no substitute spell tooltip or private-frame workaround is
+introduced. Blizzard's [aura announcement][announcement] and linked PTR notes
+were rechecked without expanding the supported build.
+
+| Context or transition | Applicability | Expected behavior and proof boundary |
+| --- | --- | --- |
+| Four ranks; pointer enters, crosses and leaves icon/name/timer and filled/unfilled row; reels idle/spinning/settled; bar on/off | Required | Only the live buff row accepts hover; construction geometry is checked off-client, actual input routing and tooltip appearance remain unverified |
+| Empty to active to expired; delayed/partial data; login/reload/relog with existing aura; late creation and zone/instance loading | Evidence-gated | Idle invitation is covered while a buff is present and returns at expiry; native assignment owns tooltip contents and visibility; expiry or hiding clears the tooltip and reacquisition recovers without reload; exact-client proof required |
+| Enter/sustain/leave combat, repeated rolls, restricted dungeon/raid/delve/scenario/PvP encounters, death/resurrection | Evidence-gated | Existing native combat suppression remains; no new restricted mutations; tooltip disappearance and recovery require the exact client |
+| 60%, 100%, 180%, UI scale/resolution; Edit Mode selection/dragging, bar toggle and exit | Required | Hit area matches the buff row after scaling/moving; preview has no live aura tooltip; construction and existing lifecycle regressions cover add-on state, native routing remains unverified |
+| Spec/talent/loadout/spellbook eligibility; hidden UI, cinematic/movie, pet battle, loading; vehicle/taxi/override UI and dialogue overlays | Evidence-gated | Inactive or covered display does not leave stale tooltips; restoration and input overlap need client proof, with existing off-client availability regressions retained |
+| Repeated hover/leave, hide/show and preview cycles; representative long session | Required | No added frames, hooks, timers or queued work; off-client lifecycle coverage plus exact-client endurance check |
+| System HUD tooltip position or later changes to that position | Required | Blocked: no supported native aura-tooltip system-anchor API on the target build |
+| Target/focus/mouseover/other-unit changes, group roster/role, charges/cooldowns, equipment/form/pet data; settings migration | Not applicable | The hover change introduces no such inputs or persistence changes; player aura and availability transitions above remain applicable |
 
 ### Optional duration bar contract and proof matrix
 
@@ -179,7 +225,7 @@ meet at matching geometry and UV endpoints, preserving the original settled well
 These bounds are authored constants, never measured from native aura widgets.
 
 The final idle rows contain fixed coin/swords/dice symbols at 0.22 central opacity
-with faded neighbors. The idle strip and an Awaiting a result footer sit beneath
+with faded neighbors. The idle strip and a Try yer luck, matey! footer sit beneath
 opaque native result artwork. This is not randomized win state. When no aura is
 present, including after expiry, the native artwork disappears and exposes idle
 without a Lua aura-presence check. Its opacity, clipping and recovery require
@@ -334,7 +380,7 @@ rendering check remains unverified on Retail live 12.1.0.69587, Interface 120100
 | Future schema, including entering Edit Mode | Required | Leave original data unchanged; runtime defaults read-only; no editor mutation |
 | Login, reload, relog, buff already active, loading screen | Evidence-gated | Native current result returns without a false spin or duplicate frames |
 | Four ranks, same-rank and different-rank rerolls | Evidence-gated | Matching symbols, localized name/icon and real timer; no overlapping rank panels; repeated readable casts animate once each |
-| Duration extension, expiry, failed or interrupted cast | Evidence-gated | Native timer follows extension; absent/expired result reveals dim varied symbols and Awaiting a result; extension/failed cast does not fabricate a spin |
+| Duration extension, expiry, failed or interrupted cast | Evidence-gated | Native timer follows extension; absent/expired result reveals dim varied symbols and Try yer luck, matey!; extension/failed cast does not fabricate a spin |
 | Staggered rolling landing, all four ranks at supported scales | Evidence-gated | Actual native-selected symbols visibly roll into their final centers one reel at a time; no wrong direction, clipping, drift or remaining carrier offset |
 | Reported third-reel lower-edge cut; start through settle at 60%, 100%, 180% | Evidence-gated | No moving internal boundary cuts a symbol or backing; one continuous strip passes behind only the fixed outer-well clip; check every reel and all four results plus idle |
 | Common decorative lead-in and rank-specific final rows | Required | Prebuilt strips have identical lead-in artwork across all four ranks and idle; native-selected final rows remain distinct; source/off-client checks plus client capture through the transition |
@@ -437,6 +483,10 @@ not permission to reproduce its restricted operations in add-on Lua.
 [aurautil]: https://github.com/Gethe/wow-ui-source/blob/8ea15b61e45c0ed4eba01439c90757f86eb78d34/Interface/AddOns/Blizzard_AuraContainer/Blizzard_AuraContainerUtil.lua
 [provider]: https://github.com/Gethe/wow-ui-source/blob/8ea15b61e45c0ed4eba01439c90757f86eb78d34/Interface/AddOns/Blizzard_AuraContainer/Blizzard_AuraContainerFrameProviders.lua
 [intrinsic]: https://github.com/Gethe/wow-ui-source/blob/8ea15b61e45c0ed4eba01439c90757f86eb78d34/Interface/AddOns/Blizzard_AuraContainer/Blizzard_AuraButton.xml
+[aurabutton]: https://github.com/Gethe/wow-ui-source/blob/8ea15b61e45c0ed4eba01439c90757f86eb78d34/Interface/AddOns/Blizzard_AuraContainer/Blizzard_AuraButton.lua
+[auratooltip]: https://github.com/Gethe/wow-ui-source/blob/8ea15b61e45c0ed4eba01439c90757f86eb78d34/Interface/AddOns/Blizzard_AuraContainer/Mainline/Blizzard_AuraButtonTooltip.xml
+[aurainbound]: https://github.com/Gethe/wow-ui-source/blob/8ea15b61e45c0ed4eba01439c90757f86eb78d34/Interface/AddOns/Blizzard_AuraContainer/Blizzard_AuraContainerInbound.lua
+[sharedtooltip]: https://github.com/Gethe/wow-ui-source/blob/8ea15b61e45c0ed4eba01439c90757f86eb78d34/Interface/AddOns/Blizzard_SharedXML/SharedTooltipTemplates.lua
 [lifecycle]: https://github.com/Gethe/wow-ui-source/blob/8ea15b61e45c0ed4eba01439c90757f86eb78d34/Interface/AddOns/Blizzard_AuraContainer/Blizzard_AuraContainer.lua
 [animationtemplates]: https://github.com/Gethe/wow-ui-source/blob/8ea15b61e45c0ed4eba01439c90757f86eb78d34/Interface/AddOns/Blizzard_SharedXML/AnimationTemplates.xml
 [animgroup]: https://github.com/Gethe/wow-ui-source/blob/8ea15b61e45c0ed4eba01439c90757f86eb78d34/Interface/AddOns/Blizzard_APIDocumentationGenerated/SimpleAnimGroupAPIDocumentation.lua
@@ -484,6 +534,8 @@ Base-duration data is not used to time live buffs.
 
 ## Local verification
 
+- Pirate idle text and footer-only hover on 2026-09-04: 50 off-client Lua tests passed. The new construction regression checks that only the live text footer accepts mouse input, its hit rectangle matches the buff row at 60%/100%/180% with the bar on/off, and Edit Mode/loading transitions disable and restore its container without new slots. Existing coverage checks the native footer covers the idle invitation. All eight TOC Lua files and both changed test files passed syntax checks; canonical texture verification and git diff --check passed. This does not simulate native hover, tooltip dismissal, combat/taint or secret data; the exact-client matrix above remains unverified. System-position anchoring is blocked by the audited API boundary
+- Current pirate-idle/footer-hover ZIP: 14 allowlisted files under RollTheBonesSlots/, with archived paths, casing and source hashes verified by the local packager. SHA256 1C8581D467321BBA9C47B78484416253855C514198D49CDD6797DF1A54C685CC. Version dev, Interface 120100 and settings schema 1 are unchanged. Built without installation, upload or publication; native tooltip and idle appearance checks remain unverified on Retail live 12.1.0.69587
 - Original-gold follow-up on 2026-09-04: removed the 0.62 RGB darkening multiplier. All 49 off-client Lua tests, Art.lua syntax and git diff --check pass. Browser inspection covered Double Trouble at 100% and One of a Kind at 60%/180%, including full, partial, empty and disabled compositions across the views; original gold is brighter and overlaid text remains readable with substitute browser fonts. Browser warnings/errors were empty. PNG/TGA hashes remain unchanged. The rebuilt 14-file ZIP passed archive path and source-hash verification, SHA256 C8F80DE91979E8D79FB504DAE4B38DFEF4C88E564210515A07807C23CA1173A0. Native appearance and existing timing/restricted-context cases remain unverified on Retail live 12.1.0.69587 / Interface 120100
 - Prior appearance-refinement ZIP before removing the darkening tint: 14 allowlisted files under RollTheBonesSlots/, with archived source hashes verified and all three runtime textures included. SHA256 3A8094BB605128750D5DE2CDB27A91E76E79DCEF95C8840D9B4F339C661E794F. That revision passed 49 off-client Lua tests, 11 art export checks, 28 isolated package checks, all eight TOC Lua syntax checks, canonical export verification and git diff --check. Built without installation or upload; exact-package client checks remain unverified on Retail live 12.1.0.69587 / Interface 120100
 - Appearance refinement on 2026-09-04: the built-in imagegen tool produced a 1774x887 opaque worn-gold source, retained unmodified as art/duration-fill.png. The exporter fits it to a 1024x128, top-left BGRA32 runtime strip. Eleven isolated art checks verify both old atlases pixel-for-pixel, the compact fill dimensions, opaque edges and retained quadrants, and read-only rejection of altered or missing exports. The cabinet and symbols remain byte-identical to the prior runtime assets

@@ -73,6 +73,7 @@ function Game.CreateReelDisplay(parent, reelIndex, initializeResult)
             candidateFilters = { includeSpellIDs = { [definition.spellID] = true } },
             initializeFrame = function(button)
                 InitializeButton(button, container)
+                button:EnableMouse(false)
                 initializeResult(button, definition, reelIndex)
                 -- Never retain or inspect this button or its regions after setup
             end,
