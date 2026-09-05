@@ -69,10 +69,11 @@ return function(test, H, loadAddon)
     for _, mode in ipairs({ "active", "always", "combat" }) do
       for _, scale in ipairs({ 0.6, 1, 1.8 }) do
         local ns = loadAddon({ visibility = mode, scale = scale })
-        H.combat = mode == "combat"
+        H.combat, H.playerCombat = mode == "combat", mode == "combat"
         H.fire("ADDON_LOADED", "RollTheBonesSlots")
         H.fire("PLAYER_LOGIN")
         local frame = ns.Machine.GetFrame()
+        eq(frame:IsVisible(), true)
         local cabinets, wells = {}, {}
         for _, widget in ipairs(H.widgets) do
           if
@@ -104,15 +105,17 @@ return function(test, H, loadAddon)
           end
         end
         checkLayers()
-        H.combat = false
+        H.combat, H.playerCombat = false, false
         H.fire("PLAYER_REGEN_ENABLED")
         H.enterEditMode()
         H.exitEditMode()
-        H.combat = mode == "combat"
+        H.combat, H.playerCombat = mode == "combat", mode == "combat"
         H.fire(H.combat and "PLAYER_REGEN_DISABLED" or "PLAYER_REGEN_ENABLED")
         local widgets, slots = #H.widgets, H.auraSlotCount
         for _ = 1, 3 do
+          eq(frame:IsVisible(), true)
           ns.Machine.Spin()
+          assert(frame.scripts.OnUpdate, "visible reels must start spinning")
           H.advance(0.7)
           checkLayers()
           ns.Machine.StopSpin()
@@ -124,7 +127,7 @@ return function(test, H, loadAddon)
           H.fire("PLAYER_ENTERING_WORLD")
           checkLayers()
         end
-        H.combat = false
+        H.combat, H.playerCombat = false, false
         H.fire("PLAYER_REGEN_ENABLED")
         H.enterEditMode()
         for _ = 1, #ns.Game.Results + 1 do

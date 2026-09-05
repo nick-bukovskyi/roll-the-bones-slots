@@ -175,7 +175,7 @@ return function(test, H, loadAddon)
       near(actualX, x)
       near(actualY, y)
     end
-    for _, text in ipairs({ "", "no", "125.5", "1e999", H.secret }) do
+    for _, text in ipairs({ "", "no", "125.5", "60%", "1e999", H.secret }) do
       -- Feed the commit boundary directly; native numeric typing/paste needs client proof
       input.focused = true
       input.text = text

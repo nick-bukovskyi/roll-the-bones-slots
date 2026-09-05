@@ -1,6 +1,14 @@
 -- Strict contract harness, not a simulation of WoW secrets or native rendering
 local H = {}
 local unpackValues = table.unpack or unpack
+-- Authored expectations are independent of the add-on's atlas definitions
+local SYMBOL_RECTS = {
+  { 0, 0, 344, 416 },
+  { 344, 0, 376, 416 },
+  { 720, 0, 304, 416 },
+  { 0, 416, 512, 416 },
+  { 512, 416, 512, 416 },
+}
 local secret = setmetatable({}, {
   __tostring = function()
     error("secret formatted")
@@ -23,7 +31,7 @@ function H.install()
   H.build, H.version, H.spec, H.known = "69587", "12.1.0", 260, true
   H.combat, H.restricted, H.cinematic, H.petBattle, H.loggedIn = false, false, false, false, false
   H.playerCombat = false
-  H.auraSlotCount, H.categoryCount, H.hookCount = 0, 0, 0
+  H.auraSlotCount, H.hookCount = 0, 0
   local methods = {}
   local function groupDuration(group)
     local orders, lastOrder = {}, 0
@@ -961,14 +969,6 @@ function H.advance(delta)
   end
 end
 
-function H.flushTimers()
-  local pending = H.timers
-  H.timers = {}
-  for _, fn in ipairs(pending) do
-    fn()
-  end
-end
-
 function H.findTemplate(template)
   for _, frame in ipairs(H.frames) do
     if frame.template == template then
@@ -1003,6 +1003,19 @@ function H.containers()
     end
   end
   return containers
+end
+
+function H.symbolInfo(texture)
+  if rawget(texture, "texture") ~= "Interface\\AddOns\\RollTheBonesSlots\\public\\art\\symbols.tga" then
+    return nil
+  end
+  local uv = assert(rawget(texture, "texCoords"), "symbol needs an atlas region")
+  for id, rect in ipairs(SYMBOL_RECTS) do
+    if uv[1] * 1024 == rect[1] and uv[2] * 1024 == rect[1] + rect[3] and uv[3] * 1024 == rect[2] and uv[4] * 1024 == rect[2] + rect[4] then
+      return id, rect
+    end
+  end
+  error("symbol outside an authored atlas region")
 end
 
 -- Inspect authored strip regions without invoking any restricted native object

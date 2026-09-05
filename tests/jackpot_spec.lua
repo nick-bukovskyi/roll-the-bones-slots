@@ -1,37 +1,10 @@
 -- Authored texture placement only; native aura visibility still needs client proof
 return function(test, H, loadAddon)
   local eq = H.eq
-  local ART_PATH = "Interface\\AddOns\\RollTheBonesSlots\\public\\art\\"
-  local SYMBOL_RECTS = {
-    { 0, 0, 344, 416 },
-    { 344, 0, 376, 416 },
-    { 720, 0, 304, 416 },
-    { 0, 416, 512, 416 },
-    { 512, 416, 512, 416 },
-  }
-
-  local function SymbolID(texture)
-    if rawget(texture, "texture") ~= ART_PATH .. "symbols.tga" then
-      return nil
-    end
-    local uv = assert(rawget(texture, "texCoords"), "symbol needs an atlas region")
-    for id, rect in ipairs(SYMBOL_RECTS) do
-      if
-        uv[1] * 1024 == rect[1]
-        and uv[2] * 1024 == rect[1] + rect[3]
-        and uv[3] * 1024 == rect[2]
-        and uv[4] * 1024 == rect[2] + rect[4]
-      then
-        return id
-      end
-    end
-    error("symbol outside an authored atlas region")
-  end
-
   local function CheckSymbol(texture, chest, nominalSize)
-    local id = assert(SymbolID(texture), "slot symbol must use the shared atlas")
+    local id, rect = H.symbolInfo(texture)
+    assert(id, "slot symbol must use the shared atlas")
     eq(id == 5, chest)
-    local rect = SYMBOL_RECTS[id]
     eq(texture.width, nominalSize * rect[3] / 512)
     eq(texture.height, nominalSize * rect[4] / 512)
   end
@@ -69,7 +42,7 @@ return function(test, H, loadAddon)
       -- Read harness construction metadata, without invoking sealed native widgets
       if slot.key == "footer" then
         for _, child in ipairs(button.children) do
-          eq(SymbolID(child), nil)
+          eq(H.symbolInfo(child), nil)
         end
         local icon = button.bindings.SetIcon
         eq(rawget(icon, "texture"), nil)
@@ -149,7 +122,7 @@ return function(test, H, loadAddon)
       local centerCount, footerCount = 0, 0
       for _, texture in ipairs(H.widgets) do
         if texture.kind == "Texture" and VisibleSample(texture) then
-          local id = SymbolID(texture)
+          local id = H.symbolInfo(texture)
           if id then
             local point = assert(texture.points.CENTER, "authored symbols retain their visual center")
             local reel = point[2] == "CENTER"
@@ -182,7 +155,7 @@ return function(test, H, loadAddon)
     eq(seen.idle, true)
     ns.Machine.SetPresentation("live")
     for _, texture in ipairs(H.widgets) do
-      if SymbolID(texture) == 5 then
+      if H.symbolInfo(texture) == 5 then
         eq(VisibleSample(texture), false)
       end
     end
