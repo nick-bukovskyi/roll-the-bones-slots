@@ -1,168 +1,130 @@
 # Roll the Bones Slots
 
-A small treasure-chest slot machine for Outlaw Rogue. Its three reels show your
-Roll the Bones rank, with the real buff name, icon and remaining time below them.
-An optional worn-gold bar fills the footer row behind the name and timer and
-drains as the buff expires. Its smaller buff icon sits inside with padding.
-Cast using your normal action buttons.
+A treasure-chest slot display for Outlaw Rogue. Three reels show your current
+Roll the Bones result, with its native buff icon, name and remaining time below.
+An optional gold bar drains as the buff expires. Cast with your normal action buttons.
 
-Hover the bottom buff row for its native tooltip, including when the duration bar
-is turned off. The reels and cabinet trim do not trigger tooltips. On the target
-build, this tooltip stays beside the chest; using the system's configured HUD
-tooltip position is blocked by the native aura-tooltip API. Tooltips remain
-hidden in combat.
+Targets **Retail live 12.1.0, build 69587, Interface 120100**. Other builds, Classic,
+PTR and beta are unsupported. This is a development candidate awaiting final
+in-game verification.
 
-## Development build for testing
+## Installation
 
-Targets **Retail live 12.1.0.69587, Interface 120100 only**. The user confirmed this
-client with GetBuildInfo. Classic, PTR, beta and other builds are not supported.
+Extract the package into your Retail `Interface/AddOns` folder so the TOC is at
+`Interface/AddOns/RollTheBonesSlots/RollTheBonesSlots.toc`. Restart WoW, enable
+**Roll the Bones Slots**, and log into an Outlaw Rogue who knows Roll the Bones.
 
-The previous landing prototype received positive user feedback, but a screenshot
-showed an internal edge cutting a lower symbol in the third reel. This continuous-strip
-fix, exclusive Jackpot chest and randomized non-winning symbols still need in-game verification. Earlier
-feedback is not full combat proof.
+## Controls
 
-1. Exit WoW and extract `dist/RollTheBonesSlots-dev.zip` into your Retail
-   `Interface/AddOns` folder. The resulting path must be
-   `Interface/AddOns/RollTheBonesSlots/RollTheBonesSlots.toc`.
-2. Start WoW and enable **Roll the Bones Slots** in the AddOns list.
-3. Log into an Outlaw Rogue who knows Roll the Bones.
-4. Open Blizzard **Edit Mode**, then click the highlighted **Roll the Bones Slots**
-   display to open its controls.
+Open Blizzard **Edit Mode** and select the highlighted chest.
 
-The corrected Interface metadata replaces the initial package that appeared as
-Incompatible. Load out of date AddOns is not needed on the target client. The
-project does not install itself, change CVars or edit your existing player data.
+- Drag to position it. Blizzard's snapping option enables grid and element snapping.
+- Set **Display scale** from 60% to 180% using the slider or percentage field.
+  Enter or leaving the field applies it; Escape cancels the edit.
+- Choose **Show display**: **Always**, **When buff is active**, or **In combat**.
+- Toggle **Animate reels and wins** for reduced motion.
+- Toggle **Show duration bar** independently of the buff name and timer.
+- Use **Test spin** to cycle through four sample results and an empty sample.
+- Use the eye button to hide or show the highlight while keeping the chest draggable.
+- **Reset to Defaults** restores position, scale, visibility, animation and the bar.
 
-## Edit Mode controls
+Preferences save immediately and account-wide. Blizzard's Edit Mode Save and
+Cancel buttons do not commit or undo them. Defaults are 100% scale, just above
+screen center, Always visibility, animation on and duration bar on.
+Editing is suspended during combat and restricted encounters.
 
-- Drag the highlighted chest to position it. Enable Blizzard's snapping option
-  to align with its grid and eligible Blizzard UI elements.
-- Adjust **Display scale** with the slider or percentage field, from 60% to 180%.
-- Turn off **Animate reels and wins** for reduced motion.
-- Toggle **Show duration bar** to show or hide the gold countdown bar while keeping
-  the buff name and remaining time visible. This is independent of reel animation.
-- Use **Test spin** to cycle through the four labeled sample results and an idle sample.
-  With animation enabled, result samples also preview the lighting behind the symbols.
-- Use **Reset to Defaults** to restore position, scale, animation and duration-bar preferences.
+EnhanceQoL is optional. Selecting the chest or another element closes the previous
+settings window. Highlight syncing supports EnhanceQoLEditMode-1.0 revision
+21000001; the next local or global eye click takes precedence for that session.
 
-Changes save immediately and apply account-wide. They are not tied to a Blizzard
-layout, and Blizzard's Save or Cancel buttons do not commit or undo these choices.
-The default is 100% scale below screen center, with animation and the duration bar
-enabled. There are no add-on slash commands or AddOns Settings category.
+## Results
 
-Editing is unavailable during combat and restricted encounters. A restriction
-interrupts dragging and closes the controls. Edit Mode shows samples only; the
-live display returns after Edit Mode ends. No keyboard bindings are changed.
-
-## What the reels mean
-
-| Result | Center symbols |
+| Buff | Center symbols |
 | --- | --- |
-| One of a Kind | One die, then two different random symbols from coin, cutlasses and rum |
-| Double Trouble | Two dice, then one random coin, cutlasses or rum |
-| Triple Threat | Dice, dice, dice |
-| Jackpot | Treasure chest ×3 |
+| One of a Kind | One die and two different coin, cutlass or rum symbols |
+| Double Trouble | Two dice and one coin, cutlass or rum symbol |
+| Triple Threat | Three dice |
+| Jackpot | Three treasure chests |
 
-Rum bottles remain ordinary reel symbols. The treasure chest is reserved for the
-native Jackpot result and its clearly labeled preview, never decorative spinning
-rows, neighboring symbols, idle or another result.
+Only non-winning symbols vary between rolls. Jackpot chests never appear in
+decorative spinning rows or the empty display. Without a buff, the display shows
+dim symbols and **Try yer luck, matey!**
 
-Each identifiable cast while the display is visible chooses a cosmetic variation,
-even with animation turned off. The dice positions stay fixed, and the choice
-stays in place after landing until another accepted roll. Random choices may repeat.
-Edit Mode previews have separate choices and restore the live variation on exit.
-Variations are not saved: login or reload starts from a valid default without a
-false spin. Loading screens, hide/show and other in-session interruptions preserve
-the current choice. The real buff, not the cosmetic random choice, decides the rank.
+Identifiable casts start a short cosmetic spin, followed by two pulses behind
+winning reels or three for Jackpot. Keep It Rolling and other duration updates
+do not start a spin. Hover the bottom buff row for its native tooltip.
 
-An identifiable successful cast starts a cosmetic spin lasting up to 1.5 seconds.
-Each reel finishes by rolling the native-selected result symbol into place,
-stopping one after another. A continuous strip carries the decorative spin into the
-final result, with clipping only at the fixed reel window.
-After the spin lands, ordinary results get two warm pulses behind the winning
-symbols. Jackpot gets three stronger pulses with a longer final glow. Only winning
-reels light up; non-winning reels keep their normal brightness. The light stays
-behind all symbols, preserving their original color and opacity.
-Edit Mode Test spin previews the same treatment. Turning animation off, resetting
-defaults, hiding the display or leaving preview cancels pending lights immediately.
-The live name and countdown remain separate from the spinning reels. Settled without an
-active result, the chest shows fixed dim coin, swords and dice symbols with
-**Try yer luck, matey!**, not a random or winning combination.
+## Known limitations
 
-The add-on does not read hidden aura values or calculate the result from the cast.
-Lighting follows the result Blizzard is currently displaying on a fixed schedule
-after each identifiable Roll the Bones cast. Same-rank rerolls also flash. Keep It
-Rolling, other duration updates, login and UI restoration do not start a spin or flash.
-When restrictions hide the cast, the cosmetic spin and flash may be skipped. Buff changes,
-extensions and expiration are handled by the native display. The animation uses
-fixed timing and cannot wait for confirmation that a new buff has arrived. A delayed
-aura update or rapid reroll during landing can still change the symbol during or
-after the landing; this prototype does not guarantee removal of every blink.
-An old Jackpot can remain visible and receive lighting until Blizzard updates the
-buff after a reroll. Neither the chest nor its flash confirms that the newest cast won.
-The live lighting and under-symbol layering still need in-game verification with
-this package; the user's no-error retest covered the preceding preview-only repair.
-Jackpot-specific sounds, reroll advice, history and chat messages are not included.
+- A drag interrupted by combat or encounter restrictions can leave the chest at
+  an unsaved position; a later scale change may move it back. Fixing this is an
+  outstanding release requirement.
+- Spins and flashes follow fixed timing. Delayed buff updates or rapid rerolls
+  can briefly show or highlight the previous result. A flash does not confirm
+  the newest cast won Jackpot.
+- Combat restrictions may prevent a cosmetic spin. Blizzard still owns the live
+  buff selection, duration and expiration; the add-on does not guess hidden results.
+- Buff tooltips stay beside the chest and are hidden in combat.
+- Preferences are independent of Blizzard layouts. There are no slash commands,
+  separate AddOns Settings page, reroll advice, history, chat announcements or sounds.
 
-## First gameplay checks
+See [CHANGELOG.md](CHANGELOG.md) for player-facing changes.
 
-- Hover across the bottom row with the duration bar on and off, then leave over
-  each reel and the trim; check that only the row opens the tooltip and leaving
-  hides it, including at 60%, 100% and 180% scale
-- With a tooltip open, test buff expiry, entering combat, hiding the UI and Edit
-  Mode; verify it clears and returns on a fresh eligible hover afterward
-- Compare all four settled results and timers with Blizzard's buff display
-- Check that the gold bar drains from full to empty, updates on rerolls and Keep It
-  Rolling, and disappears at expiry; reload with a buff active to check its remaining fill
-- Toggle Show duration bar and reset it in Edit Mode; verify the name and timer stay
-  readable at 60%, 100% and 180%, with animation both enabled and disabled
-- Watch each actual result roll into its final center, with no jump or clipped edge
-- Check the third reel's lower symbols throughout landing; no internal moving edge should cut them
-- Try repeated same-rank and different-rank rolls, duration extensions and expiry
-- Repeat One of a Kind and Double Trouble rolls with animation on and off; only non-winning symbols should vary
-- Watch that a chosen variation stays put after landing, hide/show and Edit Mode previews
-- Try a rapid reroll during landing; note delayed symbol changes or flashes
-- Check missing/expired buffs return to dim symbols and Try yer luck, matey!
-- Reload or relog with an active buff; check that it returns without a false spin
-- Test sustained combat and a restricted instance, then leave and check recovery
-- Try Edit Mode selection, Test spin, reset, dragging and snapping at 60%, 100% and 180%
-- Check real rolls and Test spin for two ordinary pulses and three Jackpot pulses behind the symbols, with no Lua warnings
-- Reroll the same rank, use Keep It Rolling, and reset or disable animation mid-flash; check replay and cancellation
-- Check entering combat while editing, hiding Edit Mode selections and leaving Edit Mode
-- Check texture transparency, clipped reel edges and readability at your UI scale
-- Check every variation for symbols leaking in from the sides at 60%, 100% and 180%
-- Check that the chest appears only in Jackpot or its labeled preview, never ordinary rows or idle
-- Check chest transparency and readability at 60%, 100% and 180%; rum remains in ordinary rows
-- Disable animation or hide the UI mid-spin; check that the result returns fully settled
-- Report missing results, incorrect timers, Lua errors, taint or blocked-action errors
+## Development
 
-Include the package name, client build, context and screenshots with feedback.
-Do not dump secret aura tables. The full matrix and source evidence are in
-[docs/VALIDATION.md](docs/VALIDATION.md).
-
-## Local development
-
-Run from the repository directory:
+Use PowerShell 7 on Windows for the artwork and package scripts, and a desktop
+Lua runner for off-client tests. Run from the repository root:
 
 ```powershell
-./scripts/export-art.ps1
-./scripts/export-art.ps1 -Check
 lua tests/runner.lua
 ./tests/art_export_spec.ps1
 ./tests/package_spec.ps1
 ./scripts/package.ps1
 ```
 
-The authoritative artwork is `art/cabinet.png`, the five-icon atlas
-`art/symbols.png` and `art/duration-fill.png`. The exporter copies the cabinet and
-symbols into transparent 1024x1024 runtime TGAs and fits the generated worn-gold
-material to a compact 1024x128 TGA. All three textures ship with this add-on;
-none come from another add-on. `-Check` rejects stale exports without changing files. See
-[art/README.md](art/README.md) for the atlas rectangles and editing workflow.
+Packaging derives the version and Lua load list from the TOC, checks the canonical
+artwork exports, and verifies every archived path and file hash. Output is
+`dist/RollTheBonesSlots-<TOC version>.zip`. It does not install or upload.
+Only the TOC, runtime Lua, README, changelog and three TGA textures ship.
 
-Tests load files in TOC order with add-on varargs and strict API stubs. They do not
-establish real-client rendering or combat safety. Packaging verifies its explicit
-runtime allowlist, path casing and archive hashes, requires valid Interface
-metadata, and validates the TGA exports before writing output. Tests, source-art
-references, instructions and validation notes are excluded from the player ZIP.
+`art/` contains the editable PNGs; `media/` contains their committed runtime
+exports. See [art/README.md](art/README.md) for editing and export commands.
+Lua formatting uses [StyLua](https://github.com/JohnnyMorganz/StyLua) and
+`.stylua.toml`: run `stylua --check src tests` to check or
+`stylua --verify src tests` to format.
+
+| Code | Responsibility |
+| --- | --- |
+| `Config.lua` | Saved preferences, validation and schema upgrades |
+| `Game.lua` | Client eligibility, authored buff definitions and native aura setup |
+| `Art.lua` | Shared geometry, textures and animation construction |
+| `Machine.lua` | Presentation, cosmetic motion and positioning |
+| `EditModeSnap.lua` | Build-specific Blizzard snapping adapter |
+| `Settings.lua` | Editor controls |
+| `EditMode.lua` | Editor lifecycle, selection and optional EnhanceQoL integration |
+| `Core.lua` | Loading, game events and presentation decisions |
+
+The TOC lists these modules in dependency order. Native aura children are built
+once and never read or changed by add-on Lua after initialization. Preview
+artwork and cosmetic variants are separate from Blizzard's active buff state.
+
+API evidence is pinned to the `live` mirror commit
+[`8ea15b61`](https://github.com/Gethe/wow-ui-source/tree/8ea15b61e45c0ed4eba01439c90757f86eb78d34);
+its [version.txt](https://github.com/Gethe/wow-ui-source/blob/8ea15b61e45c0ed4eba01439c90757f86eb78d34/version.txt)
+matches 12.1.0.69587. See Blizzard's
+[aura API announcement](https://us.forums.blizzard.com/en/wow/t/addons-and-auras-in-curse-of-ula%E2%80%99tek/2317456/).
+Re-audit the native aura and private Edit Mode boundaries before changing support.
+
+Tests load the real TOC with strict API stubs. They cover preferences, migrations,
+presentation, lifecycle, motion, controls and package contracts. They cannot prove
+native rendering, restricted combat, taint or performance.
+
+Before release, install the exact candidate ZIP and verify all four buffs,
+rerolls, extensions and expiration; login/reload and upgrades; combat and
+restricted dungeon/raid/PvP encounters; death and recovery; spec/talent changes;
+loading screens, hidden UI, cinematics, movies, pet battles and vehicle/override
+UI; Edit Mode, snapping and EnhanceQoL; and 60%, 100%, 180% scale with both bar
+and animation settings. Repeat transitions and check a long session for stale
+output, Lua errors, blocked actions and accumulating work. Current-package
+in-game proof remains outstanding. Choose a release version in the TOC only
+when the release is confirmed.

@@ -21,7 +21,7 @@ $runtimePaths = @($tocLines | Where-Object {
 } | ForEach-Object { $_.Trim().Replace('\', '/') })
 # Textures are loaded by Lua, not listed as executable files in the TOC
 $runtimeMediaPaths = @('media/cabinet.tga', 'media/symbols.tga', 'media/duration-fill.tga')
-$packagePaths = @("$addonName.toc", 'README.md', 'docs/CHANGELOG.md') + $runtimePaths + $runtimeMediaPaths
+$packagePaths = @("$addonName.toc", 'README.md', 'CHANGELOG.md') + $runtimePaths + $runtimeMediaPaths
 if (@($packagePaths | Select-Object -Unique).Count -ne $packagePaths.Count) { throw 'Duplicate package path' }
 
 # Resolve every path segment with exact casing; never traverse outside this project
@@ -60,38 +60,47 @@ foreach ($path in $runtimeMediaPaths) {
     } finally { $reader.Dispose() }
 }
 
+# Header checks cannot detect stale or changed pixels in an otherwise valid TGA
+& (Join-Path $PSScriptRoot 'export-art.ps1') -Check
+
 $outputDirectory = Join-Path $projectRoot 'dist'
 $null = New-Item -ItemType Directory -Path $outputDirectory -Force
 $archivePath = Join-Path $outputDirectory "$addonName-$version.zip"
 $pendingPath = Join-Path $outputDirectory ("$addonName-" + [guid]::NewGuid().ToString('N') + '.tmp')
 Add-Type -AssemblyName System.IO.Compression.FileSystem
-$archive = [IO.Compression.ZipFile]::Open($pendingPath, [IO.Compression.ZipArchiveMode]::Create)
 try {
-    foreach ($path in $packagePaths) {
-        $null = [IO.Compression.ZipFileExtensions]::CreateEntryFromFile(
-            $archive, $sources[$path], "$addonName/$path", [IO.Compression.CompressionLevel]::Optimal)
-    }
-} finally { $archive.Dispose() }
-
-$archive = [IO.Compression.ZipFile]::OpenRead($pendingPath)
-try {
-    if ($archive.Entries.Count -ne $packagePaths.Count) { throw 'Unexpected archive contents' }
-    foreach ($path in $packagePaths) {
-        $entry = @($archive.Entries | Where-Object { $_.FullName -ceq "$addonName/$path" })
-        if ($entry.Count -ne 1) { throw "Missing archive entry: $path" }
-        $stream = $entry[0].Open()
-        $hasher = [Security.Cryptography.SHA256]::Create()
-        try {
-            $archiveHash = [BitConverter]::ToString($hasher.ComputeHash($stream)).Replace('-', '')
-        } finally { $hasher.Dispose(); $stream.Dispose() }
-        if ($archiveHash -ne (Get-FileHash -LiteralPath $sources[$path] -Algorithm SHA256).Hash) {
-            throw "Archive content mismatch: $path"
+    $archive = [IO.Compression.ZipFile]::Open($pendingPath, [IO.Compression.ZipArchiveMode]::Create)
+    try {
+        foreach ($path in $packagePaths) {
+            $null = [IO.Compression.ZipFileExtensions]::CreateEntryFromFile(
+                $archive, $sources[$path], "$addonName/$path", [IO.Compression.CompressionLevel]::Optimal)
         }
-    }
-} finally { $archive.Dispose() }
+    } finally { $archive.Dispose() }
 
-# Replace only this project's generated ZIP after content verification succeeds
-Move-Item -LiteralPath $pendingPath -Destination $archivePath -Force
+    $archive = [IO.Compression.ZipFile]::OpenRead($pendingPath)
+    try {
+        if ($archive.Entries.Count -ne $packagePaths.Count) { throw 'Unexpected archive contents' }
+        foreach ($path in $packagePaths) {
+            $entry = @($archive.Entries | Where-Object { $_.FullName -ceq "$addonName/$path" })
+            if ($entry.Count -ne 1) { throw "Missing archive entry: $path" }
+            $stream = $entry[0].Open()
+            $hasher = [Security.Cryptography.SHA256]::Create()
+            try {
+                $archiveHash = [BitConverter]::ToString($hasher.ComputeHash($stream)).Replace('-', '')
+            } finally { $hasher.Dispose(); $stream.Dispose() }
+            if ($archiveHash -ne (Get-FileHash -LiteralPath $sources[$path] -Algorithm SHA256).Hash) {
+                throw "Archive content mismatch: $path"
+            }
+        }
+    } finally { $archive.Dispose() }
+
+    # Replace only this project's generated ZIP after content verification succeeds
+    Move-Item -LiteralPath $pendingPath -Destination $archivePath -Force
+} finally {
+    if (Test-Path -LiteralPath $pendingPath) {
+        Remove-Item -LiteralPath $pendingPath
+    }
+}
 Write-Output "Built $archivePath"
 Write-Output "Verified $($packagePaths.Count) files; no upload or installation"
 Get-FileHash -LiteralPath $archivePath -Algorithm SHA256

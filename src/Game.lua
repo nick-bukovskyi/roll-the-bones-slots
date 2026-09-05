@@ -4,6 +4,7 @@ local Game = {}
 ns.Game = Game
 
 local TARGET_VERSION, TARGET_BUILD = "12.1.0", "69587"
+Game.ClientLabel = "Retail " .. TARGET_VERSION .. "." .. TARGET_BUILD
 local OUTLAW_SPEC_ID = 260
 local ROLL_THE_BONES = 1214909
 
@@ -17,31 +18,31 @@ Game.Results = {
     { spellID = 1214937, label = "Jackpot", symbols = { 5, 5, 5 } },
 }
 
--- Both setup controls and lifecycle react to these restriction transitions
-Game.RestrictionEvents = {
-    "PLAYER_REGEN_DISABLED", "PLAYER_REGEN_ENABLED", "PLAYER_ENTERING_WORLD",
-    "ENCOUNTER_START", "ENCOUNTER_END", "CHALLENGE_MODE_START",
-    "CHALLENGE_MODE_COMPLETED", "CHALLENGE_MODE_RESET", "PVP_MATCH_STATE_CHANGED",
-}
-
 function Game.IsSupportedClient()
     local version, build = GetBuildInfo()
     return WOW_PROJECT_ID == WOW_PROJECT_MAINLINE
-        and version == TARGET_VERSION and build == TARGET_BUILD
+        and version == TARGET_VERSION
+        and build == TARGET_BUILD
 end
 
 function Game.IsOutlaw()
     local index = C_SpecializationInfo.GetSpecialization()
-    if issecretvalue(index) or not index or index == 0 then return false end
+    if issecretvalue(index) or not index or index == 0 then
+        return false
+    end
     local specID = C_SpecializationInfo.GetSpecializationInfo(index)
-    if issecretvalue(specID) or specID ~= OUTLAW_SPEC_ID then return false end
+    if issecretvalue(specID) or specID ~= OUTLAW_SPEC_ID then
+        return false
+    end
     local known = C_SpellBook.IsSpellKnown(ROLL_THE_BONES)
     return not issecretvalue(known) and known == true
 end
 
 function Game.IsRollCast(unit, spellID)
-    return not issecretvalue(unit) and unit == "player"
-        and not issecretvalue(spellID) and spellID == ROLL_THE_BONES
+    return not issecretvalue(unit)
+        and unit == "player"
+        and not issecretvalue(spellID)
+        and spellID == ROLL_THE_BONES
 end
 
 function Game.CanConfigure()
@@ -83,30 +84,32 @@ function Game.CreateReelDisplay(parent, reelIndex, initializeResult)
     return container
 end
 
-function Game.CreateFooterDisplay(parent, initializeFooter)
-    assert(type(initializeFooter) == "function", "Footer artwork initializer is required")
+function Game.CreateBuffDisplay(parent, initializeArtwork)
+    assert(type(initializeArtwork) == "function", "Buff artwork initializer is required")
     local container = CreateContainer(parent)
     local spellIDs = {}
-    for _, definition in ipairs(Game.Results) do spellIDs[definition.spellID] = true end
+    for _, definition in ipairs(Game.Results) do
+        spellIDs[definition.spellID] = true
+    end
     container:AddAuraSlot("footer", "HELPFUL", {
         candidateFilters = { includeSpellIDs = spellIDs },
         initializeFrame = function(button)
             InitializeButton(button, container)
-            initializeFooter(button)
+            initializeArtwork(button)
         end,
     })
     container:SetEnabled(true)
     return container
 end
 
-function Game.CreateWinDisplay(parent, definition, initializeWin)
+function Game.CreateWinDisplay(parent, definition, reelIndex, initializeWin)
     local container = CreateContainer(parent)
     container:AddAuraSlot("win", "HELPFUL", {
         candidateFilters = { includeSpellIDs = { [definition.spellID] = true } },
         initializeFrame = function(button)
             InitializeButton(button, container)
             button:EnableMouse(false)
-            initializeWin(button, definition)
+            initializeWin(button, definition, reelIndex)
         end,
     })
     container:SetEnabled(true)

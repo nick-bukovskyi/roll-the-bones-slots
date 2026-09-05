@@ -9,15 +9,21 @@ $temporaryRoot = [IO.Path]::GetFullPath([IO.Path]::GetTempPath())
 $fixtureRoot = Join-Path $temporaryRoot ('RollTheBonesSlots-package-test-' + [guid]::NewGuid().ToString('N'))
 $null = New-Item -ItemType Directory -Path $fixtureRoot
 $fixtureScriptDirectory = Join-Path $fixtureRoot 'scripts'
-$fixtureDocsDirectory = Join-Path $fixtureRoot 'docs'
 $fixtureMediaDirectory = Join-Path $fixtureRoot 'media'
 $fixtureSourceDirectory = Join-Path $fixtureRoot 'src'
 $fixtureArtDirectory = Join-Path $fixtureRoot 'art'
 $fixtureTestsDirectory = Join-Path $fixtureRoot 'tests'
-$null = New-Item -ItemType Directory -Path $fixtureScriptDirectory, $fixtureDocsDirectory, `
+$null = New-Item -ItemType Directory -Path $fixtureScriptDirectory, `
     $fixtureMediaDirectory, $fixtureSourceDirectory, $fixtureArtDirectory, $fixtureTestsDirectory
 $fixtureScript = Join-Path $fixtureScriptDirectory 'package.ps1'
 Copy-Item -LiteralPath (Join-Path $projectRoot 'scripts/package.ps1') -Destination $fixtureScript
+# The real export algorithm is covered by art_export_spec; exercise its package boundary here
+Set-Content -LiteralPath (Join-Path $fixtureScriptDirectory 'export-art.ps1') -Value @'
+param([switch]$Check)
+if (-not $Check) { throw 'Packaging must check textures without exporting them' }
+$failurePath = Join-Path (Split-Path -Parent $PSScriptRoot) 'art/export-error.txt'
+if (Test-Path -LiteralPath $failurePath) { throw 'Stale texture export' }
+'@
 $fixtureToc = Join-Path $fixtureRoot 'RollTheBonesSlots.toc'
 $fixtureDist = Join-Path $fixtureRoot 'dist'
 $checks = 0
@@ -81,7 +87,7 @@ try {
 
     # The guard checks syntax, not a second hard-coded compatibility authority
     Set-Content -LiteralPath (Join-Path $fixtureRoot 'README.md') -Value 'Synthetic package fixture'
-    Set-Content -LiteralPath (Join-Path $fixtureDocsDirectory 'CHANGELOG.md') -Value 'Synthetic fixture changelog'
+    Set-Content -LiteralPath (Join-Path $fixtureRoot 'CHANGELOG.md') -Value 'Synthetic fixture changelog'
     Set-Content -LiteralPath (Join-Path $fixtureSourceDirectory 'Main.lua') -Value 'local addonName, ns = ...'
     Set-Content -LiteralPath (Join-Path $fixtureMediaDirectory 'source.png') -Value 'Excluded source art'
     Set-Content -LiteralPath (Join-Path $fixtureMediaDirectory 'jackpot.tga') -Value 'Obsolete standalone texture'
@@ -96,7 +102,7 @@ try {
     foreach ($name in @('cabinet.tga', 'symbols.tga', 'duration-fill.tga')) {
         [IO.File]::WriteAllBytes((Join-Path $fixtureMediaDirectory $name), $validTga)
     }
-    $expectedPaths = @('RollTheBonesSlots.toc', 'README.md', 'docs/CHANGELOG.md', 'src/Main.lua', `
+    $expectedPaths = @('RollTheBonesSlots.toc', 'README.md', 'CHANGELOG.md', 'src/Main.lua', `
         'media/cabinet.tga', 'media/symbols.tga', 'media/duration-fill.tga')
     foreach ($interface in @('123456', '654321')) {
         Set-Content -LiteralPath $fixtureToc -Value @("## Interface: $interface", '## Version: fixture', 'src\Main.lua')
@@ -125,6 +131,27 @@ try {
 
     # Invalid assets fail before replacing a known-good ZIP or leaving temporary output
     $previousHash = (Get-FileHash -LiteralPath $existingArchive -Algorithm SHA256).Hash
+    $exportFailurePath = Join-Path $fixtureArtDirectory 'export-error.txt'
+    Set-Content -LiteralPath $exportFailurePath -Value 'Synthetic stale export'
+    Assert-PackageRejected 'stale artwork export' 'Stale texture export'
+    Remove-Item -LiteralPath $exportFailurePath
+    $checks++
+
+    # A failed content check must discard its pending ZIP and preserve the previous archive
+    function Get-FileHash {
+        param([string]$LiteralPath, [string]$Algorithm)
+        if ($LiteralPath -eq (Join-Path $fixtureSourceDirectory 'Main.lua')) {
+            return [pscustomobject]@{ Hash = 'synthetic mismatch' }
+        }
+        Microsoft.PowerShell.Utility\Get-FileHash @PSBoundParameters
+    }
+    try {
+        Assert-PackageRejected 'archive verification failure' 'Archive content mismatch'
+        $checks++
+    } finally {
+        Remove-Item -LiteralPath Function:\Get-FileHash
+    }
+
     foreach ($name in @('cabinet.tga', 'symbols.tga', 'duration-fill.tga')) {
         $assetPath = Join-Path $fixtureMediaDirectory $name
         $omittedPath = Join-Path $fixtureMediaDirectory "$name.omitted"

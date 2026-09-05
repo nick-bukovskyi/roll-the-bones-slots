@@ -1,7 +1,2 @@
 /dist/
-/artifacts/
 *.tmp
-
-# Local browser preview tooling; page and snapshots live under artifacts
-/scripts/preview-server.cjs
-/tests/export_preview.lua
