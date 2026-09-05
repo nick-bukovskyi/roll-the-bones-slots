@@ -1,4 +1,4 @@
--- Edit Mode owns selection, dragging and the temporary preview session
+-- Edit Mode owns selection, positioning and the temporary preview session
 local _, ns = ...
 local EditMode = {}
 ns.EditMode = EditMode
@@ -275,6 +275,13 @@ function EditMode.Initialize(onStateChanged)
     canEdit = EditMode.IsPreviewActive,
     getHighlightsHidden = EditMode.AreHighlightsHidden,
     toggleHighlights = EditMode.ToggleHighlights,
+    nudge = function(deltaX, deltaY)
+      if not selected or not CanShowEditor() then
+        return false
+      end
+      FinishDrag(false)
+      return ns.Machine.NudgePosition(deltaX, deltaY)
+    end,
     changed = function()
       ns.Machine.ApplyPosition()
       if not ns.Config.GetAnimationEnabled() then

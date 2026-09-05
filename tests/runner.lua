@@ -30,6 +30,7 @@ dofile("tests/win_effects_spec.lua")(test, harness, loadAddon)
 dofile("tests/jackpot_spec.lua")(test, harness, loadAddon)
 dofile("tests/variation_spec.lua")(test, harness, loadAddon)
 dofile("tests/editmode_snap_spec.lua")(test, harness, loadAddon)
+dofile("tests/editmode_keyboard_spec.lua")(test, harness, loadAddon)
 for _, entry in ipairs(tests) do
   local success, failure = pcall(entry[2])
   if not success then

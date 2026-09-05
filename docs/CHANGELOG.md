@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.1.1] - 2026-09-05
+
+### Added
+
+- Arrow keys now fine-tune the selected chest's position in Edit Mode. Hold Shift for larger steps, just like Blizzard's UI.
+
 ## [0.1.0] - 2026-09-04
 
 ### Added

@@ -31,6 +31,7 @@ function H.install()
   H.build, H.version, H.spec, H.known = "69587", "12.1.0", 260, true
   H.combat, H.restricted, H.cinematic, H.petBattle, H.loggedIn = false, false, false, false, false
   H.playerCombat = false
+  H.shift = false
   H.auraSlotCount, H.hookCount = 0, 0
   local methods = {}
   local function groupDuration(group)
@@ -444,6 +445,19 @@ function H.install()
     assert(type(value) == "boolean")
     self.mouse = value
   end
+  function methods:EnableKeyboard(value, ...)
+    check(self)
+    H.eq(select("#", ...), 0)
+    assert(type(value) == "boolean")
+    self.keyboard = value
+  end
+  function methods:SetPropagateKeyboardInput(value, ...)
+    check(self)
+    H.eq(select("#", ...), 0)
+    assert(type(value) == "boolean")
+    assert(not H.combat, "must not change keyboard propagation in combat")
+    self.propagateKeyboard = value
+  end
   function methods:SetHitRectInsets(left, right, top, bottom, ...)
     check(self)
     H.eq(select("#", ...), 0)
@@ -824,6 +838,19 @@ function H.install()
   end
   _G.InCombatLockdown = function()
     return H.combat
+  end
+  _G.IsShiftKeyDown = function(...)
+    H.eq(select("#", ...), 0)
+    return H.shift
+  end
+  _G.GetCurrentKeyBoardFocus = function(...)
+    H.eq(select("#", ...), 0)
+    for _, widget in ipairs(H.widgets) do
+      if widget.focused then
+        return widget
+      end
+    end
+    return nil
   end
   _G.UnitAffectingCombat = function(unit, ...)
     H.eq(select("#", ...), 0)

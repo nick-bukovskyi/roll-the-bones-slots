@@ -100,29 +100,58 @@ function Machine.Spin()
   frame:SetScript("OnUpdate", Animate)
 end
 
+local function ClampPosition(x, y, scale)
+  local halfWidth = math.max(0, (UIParent:GetWidth() / scale - ns.Art.Width) / 2)
+  local halfHeight = math.max(0, (UIParent:GetHeight() / scale - ns.Art.Height) / 2)
+  x = math.max(-halfWidth, math.min(halfWidth, x))
+  y = math.max(-halfHeight, math.min(halfHeight, y))
+  return x, y
+end
+
+local function GetFramePosition()
+  local x, y = frame:GetCenter()
+  local parentX, parentY = UIParent:GetCenter()
+  if x and y and parentX and parentY then
+    return x - parentX / frame:GetScale(), y - parentY / frame:GetScale()
+  end
+end
+
 function Machine.ApplyPosition()
   if not frame then
     return
   end
   local scale = ns.Config.GetScale()
   local x, y = ns.Config.GetPosition()
-  local halfWidth = math.max(0, (UIParent:GetWidth() / scale - ns.Art.Width) / 2)
-  local halfHeight = math.max(0, (UIParent:GetHeight() / scale - ns.Art.Height) / 2)
-  x = math.max(-halfWidth, math.min(halfWidth, x))
-  y = math.max(-halfHeight, math.min(halfHeight, y))
+  x, y = ClampPosition(x, y, scale)
   frame:SetScale(scale)
   frame:ClearAllPoints()
   frame:SetPoint("CENTER", UIParent, "CENTER", x, y)
+end
+
+function Machine.NudgePosition(deltaX, deltaY)
+  if not frame or not ns.Game.CanConfigure() then
+    return false
+  end
+  -- Native nudges start at the visible position, including after an interrupted drag
+  local x, y = GetFramePosition()
+  if not x or not y then
+    return false
+  end
+  x, y = ClampPosition(x + deltaX, y + deltaY, ns.Config.GetScale())
+  if not ns.Config.SetPosition(x, y) then
+    return false
+  end
+  Machine.ApplyPosition()
+  return true
 end
 
 function Machine.CapturePosition()
   if not frame or not ns.Game.CanConfigure() then
     return
   end
-  local x, y = frame:GetCenter()
-  local parentX, parentY = UIParent:GetCenter()
-  if x and y and parentX and parentY then
-    ns.Config.SetPosition(x - parentX / frame:GetScale(), y - parentY / frame:GetScale())
+  local x, y = GetFramePosition()
+  if x and y then
+    ns.Config.SetPosition(x, y)
   end
   Machine.ApplyPosition()
 end

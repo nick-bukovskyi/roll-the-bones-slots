@@ -9,9 +9,46 @@ local refreshing, cancelInput = false, false
 local PANEL_WIDTH, PANEL_PADDING, TITLE_TOP = 386, 20, 15
 local ROW_HEIGHT, ROW_GAP, SECTION_GAP, BUTTON_HEIGHT = 32, 2, 12, 28
 local LABEL_WIDTH, CONTROL_GAP = 100, 5
+local MOVEMENT_KEYS = {
+  UP = { 0, 1 },
+  DOWN = { 0, -1 },
+  LEFT = { -1, 0 },
+  RIGHT = { 1, 0 },
+}
+local handledKeys = {}
 
 local function CanEdit()
   return panel and panel:IsShown() and callbacks.canEdit()
+end
+
+local function OnKeyDown(self, key)
+  if not ns.Game.CanConfigure() then
+    self:Hide()
+    return
+  end
+  local direction = MOVEMENT_KEYS[key]
+  local handled = false
+  if direction and CanEdit() and self:IsVisible() and not GetCurrentKeyBoardFocus() then
+    -- Retail 12.1.0.69587 EditModeSystemMixin moves 1 anchor unit, or 10 with Shift
+    local step = IsShiftKeyDown() and 10 or 1
+    handled = callbacks.nudge(direction[1] * step, direction[2] * step)
+  end
+  if direction then
+    -- A forwarded press still needs its release if a later repeat is consumed
+    handledKeys[key] = handled and handledKeys[key] ~= false
+  end
+  self:SetPropagateKeyboardInput(not handled)
+end
+
+local function OnKeyUp(self, key)
+  if not ns.Game.CanConfigure() then
+    self:Hide()
+    return
+  end
+  -- Match each release to its press, including arrows rejected for missing geometry
+  local handled = handledKeys[key]
+  handledKeys[key] = nil
+  self:SetPropagateKeyboardInput(not handled)
 end
 
 local function EyeTooltipText()
@@ -126,6 +163,9 @@ local function CreatePanel()
   panel:SetClampedToScreen(true)
   panel:SetDontSavePosition(true)
   panel:EnableMouse(true)
+  panel:EnableKeyboard(true)
+  panel:SetScript("OnKeyDown", OnKeyDown)
+  panel:SetScript("OnKeyUp", OnKeyUp)
   panel:RegisterForDrag("LeftButton")
   panel:SetScript("OnDragStart", function()
     if CanEdit() then
@@ -240,6 +280,7 @@ local function CreatePanel()
   end)
 
   panel:SetScript("OnHide", function()
+    handledKeys = {}
     visibility:CloseMenu()
     HideEyeTooltip()
     cancelInput = true
@@ -259,6 +300,7 @@ function Settings.Show()
     return
   end
   CreatePanel()
+  panel:SetPropagateKeyboardInput(true)
   panel:Show()
   Settings.Refresh()
 end
