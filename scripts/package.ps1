@@ -27,7 +27,7 @@ $runtimePaths = @($tocLines | Where-Object {
     $_.Trim() -and -not $_.TrimStart().StartsWith('#')
 } | ForEach-Object { $_.Trim().Replace('\', '/') })
 # Textures are loaded by Lua, not listed as executable files in the TOC
-$runtimeMediaPaths = @('media/cabinet.tga', 'media/symbols.tga', 'media/duration-fill.tga',
+$runtimeMediaPaths = @('public/art/cabinet.tga', 'public/art/symbols.tga', 'public/art/duration-fill.tga',
     $icon.Substring($iconPrefix.Length))
 $packagePaths = @("$addonName.toc", 'LICENSE', 'docs/CHANGELOG.md') + $runtimePaths + $runtimeMediaPaths
 if (@($packagePaths | Select-Object -Unique).Count -ne $packagePaths.Count) { throw 'Duplicate package path' }

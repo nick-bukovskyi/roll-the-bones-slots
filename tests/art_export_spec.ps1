@@ -100,9 +100,8 @@ $exportScript = Join-Path $projectRoot 'scripts/export-art.ps1'
 $temporaryRoot = [IO.Path]::GetFullPath([IO.Path]::GetTempPath())
 $fixtureRoot = Join-Path $temporaryRoot ('RollTheBonesSlots-art-test-' + [guid]::NewGuid().ToString('N'))
 $null = New-Item -ItemType Directory -Path $fixtureRoot
-$artDirectory = Join-Path $fixtureRoot 'art'
-$mediaDirectory = Join-Path $fixtureRoot 'media'
 $publicDirectory = Join-Path $fixtureRoot 'public'
+$artDirectory = Join-Path $publicDirectory 'art'
 $checks = 0
 
 function Get-FixtureState {
@@ -126,7 +125,7 @@ function Assert-ExportCheckRejected {
 }
 
 try {
-    $null = New-Item -ItemType Directory -Path $artDirectory, $publicDirectory
+    $null = New-Item -ItemType Directory -Path $publicDirectory, $artDirectory
     $cabinetSource = Join-Path $artDirectory 'cabinet.png'
     $symbolsSource = Join-Path $artDirectory 'symbols.png'
     $fillSource = Join-Path $artDirectory 'duration-fill.png'
@@ -135,9 +134,9 @@ try {
     [SlotArtExportFixture]::WriteFill($fillSource)
     [SlotArtExportFixture]::WriteLogo((Join-Path $publicDirectory 'logo.png'))
     & $exportScript -ProjectRoot $fixtureRoot | Out-Null
-    $cabinetOutput = Join-Path $mediaDirectory 'cabinet.tga'
-    $symbolsOutput = Join-Path $mediaDirectory 'symbols.tga'
-    $fillOutput = Join-Path $mediaDirectory 'duration-fill.tga'
+    $cabinetOutput = Join-Path $artDirectory 'cabinet.tga'
+    $symbolsOutput = Join-Path $artDirectory 'symbols.tga'
+    $fillOutput = Join-Path $artDirectory 'duration-fill.tga'
     $logoOutput = Join-Path $publicDirectory 'logo.tga'
     $curseforgeOutput = Join-Path $publicDirectory 'curseforge-icon.png'
     [SlotArtExportFixture]::AssertTga($cabinetOutput, 1, 630)
@@ -145,8 +144,8 @@ try {
     [SlotArtExportFixture]::AssertFill($fillOutput)
     [SlotArtExportFixture]::AssertLogoExports($logoOutput, $curseforgeOutput)
     $checks += 4
-    if (@(Get-ChildItem -LiteralPath $mediaDirectory -File).Count -ne 3) {
-        throw 'Export created unexpected runtime textures'
+    if (@(Get-ChildItem -LiteralPath $artDirectory -File).Count -ne 6) {
+        throw 'Export created unexpected artwork files'
     }
     $checks++
 

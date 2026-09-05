@@ -10,7 +10,8 @@ ignore:
   - README.md
   - public/logo.png
   - public/curseforge-icon.png
-  - art
+  - "public/art/*.png"
+  - public/screenshots
   - tests
   - scripts
   - dist

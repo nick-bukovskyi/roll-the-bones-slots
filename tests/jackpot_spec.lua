@@ -1,7 +1,7 @@
 -- Authored texture placement only; native aura visibility still needs client proof
 return function(test, H, loadAddon)
     local eq = H.eq
-    local MEDIA = "Interface\\AddOns\\RollTheBonesSlots\\media\\"
+    local ART_PATH = "Interface\\AddOns\\RollTheBonesSlots\\public\\art\\"
     local SYMBOL_RECTS = {
         { 0, 0, 344, 416 },
         { 344, 0, 376, 416 },
@@ -11,7 +11,7 @@ return function(test, H, loadAddon)
     }
 
     local function SymbolID(texture)
-        if rawget(texture, "texture") ~= MEDIA .. "symbols.tga" then
+        if rawget(texture, "texture") ~= ART_PATH .. "symbols.tga" then
             return nil
         end
         local uv = assert(rawget(texture, "texCoords"), "symbol needs an atlas region")

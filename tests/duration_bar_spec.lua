@@ -118,7 +118,10 @@ return function(test, H, loadAddon)
                 )
             end
             assert(bar.frameLevel > footer.button.frameLevel, "bar must stay above footer backing")
-            eq(bar.fill.texture, "Interface\\AddOns\\RollTheBonesSlots\\media\\duration-fill.tga")
+            eq(
+                bar.fill.texture,
+                "Interface\\AddOns\\RollTheBonesSlots\\public\\art\\duration-fill.tga"
+            )
             local backing = footer.button.children[1]
             eq(bar.points.TOPLEFT[3], backing.points.TOPLEFT[3])
             eq(bar.points.TOPLEFT[4], backing.points.TOPLEFT[4])

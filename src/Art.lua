@@ -10,7 +10,7 @@ local Art = {
     VariantSymbols = { 2, 3, 4 },
 }
 ns.Art = Art
-local MEDIA = "Interface\\AddOns\\" .. ADDON_NAME .. "\\media\\"
+local ART_PATH = "Interface\\AddOns\\" .. ADDON_NAME .. "\\public\\art\\"
 local CABINET_HEIGHT = 630 / 1024
 local WELLS = { { 53, 39, 91, 153 }, { 153, 39, 94, 153 }, { 258, 39, 91, 153 } }
 local FOOTER = { x = 50, y = 205, width = 301, height = 26, iconSize = 16 }
@@ -37,7 +37,7 @@ local SYMBOL_RECTS = {
 
 local function Texture(parent, file, layer)
     local texture = parent:CreateTexture(nil, layer or "ARTWORK")
-    texture:SetTexture(MEDIA .. file, "CLAMP", "CLAMP", "LINEAR")
+    texture:SetTexture(ART_PATH .. file, "CLAMP", "CLAMP", "LINEAR")
     return texture
 end
 

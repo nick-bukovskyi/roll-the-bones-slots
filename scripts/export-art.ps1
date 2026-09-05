@@ -104,19 +104,17 @@ public static class SlotTextureExport {
     }
 }
 '@
-$artDirectory = Join-Path $ProjectRoot 'art'
-$mediaDirectory = Join-Path $ProjectRoot 'media'
-if (-not $Check) { New-Item -ItemType Directory -Path $mediaDirectory -Force | Out-Null }
+$publicDirectory = Join-Path $ProjectRoot 'public'
+$artDirectory = Join-Path $publicDirectory 'art'
 foreach ($asset in @(
     @{ Name = 'cabinet'; Width = 1024; Height = 630; RuntimeWidth = 1024; RuntimeHeight = 1024; Fit = $false },
     @{ Name = 'symbols'; Width = 1024; Height = 832; RuntimeWidth = 1024; RuntimeHeight = 1024; Fit = $false },
     @{ Name = 'duration-fill'; Width = 1774; Height = 887; RuntimeWidth = 1024; RuntimeHeight = 128; Fit = $true }
 )) {
     [SlotTextureExport]::Export((Join-Path $artDirectory ($asset.Name + '.png')),
-        (Join-Path $mediaDirectory ($asset.Name + '.tga')), $Check.IsPresent,
+        (Join-Path $artDirectory ($asset.Name + '.tga')), $Check.IsPresent,
         $asset.Width, $asset.Height, $asset.RuntimeWidth, $asset.RuntimeHeight, $asset.Fit)
 }
-$publicDirectory = Join-Path $ProjectRoot 'public'
 $logoSource = Join-Path $publicDirectory 'logo.png'
 $logoSourceSize = 1254
 foreach ($export in @(

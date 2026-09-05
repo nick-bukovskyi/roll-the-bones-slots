@@ -1,7 +1,7 @@
 -- Cosmetic lane choices and construction geometry, not live aura selection
 return function(test, H, loadAddon)
     local eq = H.eq
-    local MEDIA = "Interface\\AddOns\\RollTheBonesSlots\\media\\"
+    local ART_PATH = "Interface\\AddOns\\RollTheBonesSlots\\public\\art\\"
     local SYMBOL_RECTS = {
         { 0, 0, 344, 416 },
         { 344, 0, 376, 416 },
@@ -11,7 +11,7 @@ return function(test, H, loadAddon)
     }
 
     local function SymbolID(texture)
-        eq(texture.texture, MEDIA .. "symbols.tga")
+        eq(texture.texture, ART_PATH .. "symbols.tga")
         local uv = texture.texCoords
         for id, rect in ipairs(SYMBOL_RECTS) do
             if

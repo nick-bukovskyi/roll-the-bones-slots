@@ -39,7 +39,10 @@ return function(test, H, loadAddon)
                         backgrounds[#backgrounds + 1] = background
                     end
                     eq(rawget(region, "alpha") or 1, 1)
-                    eq(region.texture, "Interface\\AddOns\\RollTheBonesSlots\\media\\cabinet.tga")
+                    eq(
+                        region.texture,
+                        "Interface\\AddOns\\RollTheBonesSlots\\public\\art\\cabinet.tga"
+                    )
                 elseif region.points.CENTER and region.points.CENTER[3] == laneX then
                     local row = -region.points.CENTER[4] / pitch
                     eq(row, math.floor(row))
@@ -82,7 +85,7 @@ return function(test, H, loadAddon)
                             and widget.width == ns.Art.Width
                             and widget.height == ns.Art.Height
                             and rawget(widget, "texture")
-                                == "Interface\\AddOns\\RollTheBonesSlots\\media\\cabinet.tga"
+                                == "Interface\\AddOns\\RollTheBonesSlots\\public\\art\\cabinet.tga"
                         then
                             cabinets[#cabinets + 1] = widget.parent
                         elseif rawget(widget, "clipsChildren") then
@@ -336,7 +339,7 @@ return function(test, H, loadAddon)
             local ns = loadAddon()
             ns.Config.Initialize(nil)
             ns.Machine.Initialize()
-            local file = assert(io.open("media/cabinet.tga", "rb"))
+            local file = assert(io.open("public/art/cabinet.tga", "rb"))
             local pixels = file:read("*a")
             file:close()
             -- The shipped exporter writes uncompressed BGRA pixels in top-left order
