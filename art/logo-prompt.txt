@@ -1,0 +1,11 @@
+Generated with the built-in ImageGen tool
+Output: public/logo.png
+
+Use case: logo-brand
+Asset type: one finished square raster logo for the World of Warcraft Outlaw Rogue add-on "Roll the Bones Slots", for its project page and README.
+Primary request: Design a distinctive, polished pirate-fantasy gaming logo. The main emblem is a compact, front-facing treasure chest transformed into a three-reel slot machine. Its cabinet is dark weathered wood with thick antique-gold and brass edging. Across the chest are exactly three separate dark reel windows, each containing one large ivory six-sided die with crisp black pips. The three dice and the chest silhouette must read immediately. A small skull-shaped brass lock is an understated detail, not the main subject.
+Composition: centered, balanced square composition; strong compact silhouette; emblem in the upper portion and integrated title below; generous clean margin on every edge. Simplify ornamental detail so this remains readable when reduced. One logo, not a sheet of alternatives.
+Style: premium hand-painted fantasy game UI artwork with dimensional beveled metal, restrained highlights, rich dark outlines, and clear graphic shapes. Warm gold, aged brass, very dark brown wood, and ivory dice. Playful pirate luck, refined rather than cartoonish. No photographic scene.
+Text (verbatim): "ROLL THE BONES" and "SLOTS". Set ROLL THE on the first title line, BONES prominently on the second, and SLOTS on a smaller integrated dark-and-gold plaque underneath. Use bold, clean, beveled gold fantasy serif lettering with precise spelling and readable spacing. No extra text or slogans.
+Background: genuinely transparent alpha outside the complete emblem and lettering, with crisp clean edges; no white rectangle, no checkerboard pattern, no ambient background, no large drop-shadow cloud.
+Constraints: retain the exact title; show exactly three dice in three reel windows; keep all lettering and the full emblem inside the canvas. No official Blizzard or World of Warcraft logos, no 777, no currency signs, no characters, no extra floating props, no watermarks, no mockup presentation. Deliver a high-resolution square PNG logo.

@@ -13,8 +13,11 @@ $fixtureMediaDirectory = Join-Path $fixtureRoot 'media'
 $fixtureSourceDirectory = Join-Path $fixtureRoot 'src'
 $fixtureArtDirectory = Join-Path $fixtureRoot 'art'
 $fixtureTestsDirectory = Join-Path $fixtureRoot 'tests'
+$fixtureDocsDirectory = Join-Path $fixtureRoot 'docs'
+$fixturePublicDirectory = Join-Path $fixtureRoot 'public'
 $null = New-Item -ItemType Directory -Path $fixtureScriptDirectory, `
-    $fixtureMediaDirectory, $fixtureSourceDirectory, $fixtureArtDirectory, $fixtureTestsDirectory
+    $fixtureMediaDirectory, $fixtureSourceDirectory, $fixtureArtDirectory, $fixtureTestsDirectory, `
+    $fixtureDocsDirectory, $fixturePublicDirectory
 $fixtureScript = Join-Path $fixtureScriptDirectory 'package.ps1'
 Copy-Item -LiteralPath (Join-Path $projectRoot 'scripts/package.ps1') -Destination $fixtureScript
 # The real export algorithm is covered by art_export_spec; exercise its package boundary here
@@ -25,6 +28,7 @@ $failurePath = Join-Path (Split-Path -Parent $PSScriptRoot) 'art/export-error.tx
 if (Test-Path -LiteralPath $failurePath) { throw 'Stale texture export' }
 '@
 $fixtureToc = Join-Path $fixtureRoot 'RollTheBonesSlots.toc'
+$fixtureIconMetadata = '## IconTexture: Interface\AddOns\RollTheBonesSlots\public\logo.tga'
 $fixtureDist = Join-Path $fixtureRoot 'dist'
 $checks = 0
 
@@ -87,12 +91,15 @@ try {
 
     # The guard checks syntax, not a second hard-coded compatibility authority
     Set-Content -LiteralPath (Join-Path $fixtureRoot 'README.md') -Value 'Synthetic package fixture'
-    Set-Content -LiteralPath (Join-Path $fixtureRoot 'CHANGELOG.md') -Value 'Synthetic fixture changelog'
+    Set-Content -LiteralPath (Join-Path $fixtureRoot 'LICENSE') -Value 'Synthetic fixture license'
+    Set-Content -LiteralPath (Join-Path $fixtureDocsDirectory 'CHANGELOG.md') -Value 'Synthetic fixture changelog'
     Set-Content -LiteralPath (Join-Path $fixtureSourceDirectory 'Main.lua') -Value 'local addonName, ns = ...'
     Set-Content -LiteralPath (Join-Path $fixtureMediaDirectory 'source.png') -Value 'Excluded source art'
     Set-Content -LiteralPath (Join-Path $fixtureMediaDirectory 'jackpot.tga') -Value 'Obsolete standalone texture'
     Set-Content -LiteralPath (Join-Path $fixtureArtDirectory 'mockup.png') -Value 'Excluded mockup'
     Set-Content -LiteralPath (Join-Path $fixtureTestsDirectory 'fixture.lua') -Value 'Excluded test'
+    Set-Content -LiteralPath (Join-Path $fixturePublicDirectory 'logo.png') -Value 'Excluded source logo'
+    Set-Content -LiteralPath (Join-Path $fixturePublicDirectory 'curseforge-icon.png') -Value 'Excluded upload icon'
     $validTga = [byte[]]::new(18 + 4 * 4 * 4)
     $validTga[2] = 2
     $validTga[12] = 4
@@ -102,10 +109,12 @@ try {
     foreach ($name in @('cabinet.tga', 'symbols.tga', 'duration-fill.tga')) {
         [IO.File]::WriteAllBytes((Join-Path $fixtureMediaDirectory $name), $validTga)
     }
-    $expectedPaths = @('RollTheBonesSlots.toc', 'README.md', 'CHANGELOG.md', 'src/Main.lua', `
-        'media/cabinet.tga', 'media/symbols.tga', 'media/duration-fill.tga')
+    [IO.File]::WriteAllBytes((Join-Path $fixturePublicDirectory 'logo.tga'), $validTga)
+    $expectedPaths = @('RollTheBonesSlots.toc', 'LICENSE', 'docs/CHANGELOG.md', 'src/Main.lua', `
+        'media/cabinet.tga', 'media/symbols.tga', 'media/duration-fill.tga', 'public/logo.tga')
     foreach ($interface in @('123456', '654321')) {
-        Set-Content -LiteralPath $fixtureToc -Value @("## Interface: $interface", '## Version: fixture', 'src\Main.lua')
+        Set-Content -LiteralPath $fixtureToc -Value @("## Interface: $interface", '## Version: fixture',
+            $fixtureIconMetadata, 'src\Main.lua')
         & $fixtureScript | Out-Null
         $archive = [IO.Compression.ZipFile]::OpenRead($existingArchive)
         try {
@@ -131,6 +140,27 @@ try {
 
     # Invalid assets fail before replacing a known-good ZIP or leaving temporary output
     $previousHash = (Get-FileHash -LiteralPath $existingArchive -Algorithm SHA256).Hash
+    $validToc = Get-Content -LiteralPath $fixtureToc
+    foreach ($iconCase in @(
+        @{ Lines = @(); Error = 'Expected one TOC IconTexture' },
+        @{ Lines = @($fixtureIconMetadata, $fixtureIconMetadata); Error = 'Expected one TOC IconTexture' },
+        @{ Lines = @('## IconTexture: Interface\AddOns\OtherAddon\logo.tga'); Error = 'inside this addon' },
+        @{ Lines = @('## IconTexture: Interface\AddOns\RollTheBonesSlots\public\logo.png'); Error = 'TGA inside this addon' },
+        @{ Lines = @('## IconTexture: Interface\AddOns\RollTheBonesSlots\..\logo.tga'); Error = 'Invalid path' }
+    )) {
+        Set-Content -LiteralPath $fixtureToc -Value @('## Interface: 654321', '## Version: fixture', 'src\Main.lua')
+        foreach ($line in $iconCase.Lines) { Add-Content -LiteralPath $fixtureToc -Value $line }
+        Assert-PackageRejected 'invalid logo metadata' $iconCase.Error
+        $checks++
+    }
+    Set-Content -LiteralPath $fixtureToc -Value $validToc
+
+    $logoPath = Join-Path $fixturePublicDirectory 'logo.tga'
+    Remove-Item -LiteralPath $logoPath
+    Assert-PackageRejected 'missing AddOns-list logo' 'Missing file or incorrect casing'
+    [IO.File]::WriteAllBytes($logoPath, $validTga)
+    $checks++
+
     $exportFailurePath = Join-Path $fixtureArtDirectory 'export-error.txt'
     Set-Content -LiteralPath $exportFailurePath -Value 'Synthetic stale export'
     Assert-PackageRejected 'stale artwork export' 'Stale texture export'

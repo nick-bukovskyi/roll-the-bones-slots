@@ -16,12 +16,20 @@ $versionLines = @($tocLines | Where-Object { $_ -match '^## Version: (.+)$' })
 if ($versionLines.Count -ne 1) { throw 'Expected one TOC version' }
 $version = $versionLines[0].Substring('## Version: '.Length)
 if ($version -notmatch '^[A-Za-z0-9.-]+$') { throw 'Unsafe package version' }
+$iconLines = @($tocLines | Where-Object { $_ -match '^## IconTexture: (.+)$' })
+if ($iconLines.Count -ne 1) { throw 'Expected one TOC IconTexture declaration' }
+$icon = $iconLines[0].Substring('## IconTexture: '.Length).Replace('\', '/')
+$iconPrefix = "Interface/AddOns/$addonName/"
+if (-not $icon.StartsWith($iconPrefix, [StringComparison]::Ordinal) -or -not $icon.EndsWith('.tga')) {
+    throw 'IconTexture must refer to a TGA inside this addon'
+}
 $runtimePaths = @($tocLines | Where-Object {
     $_.Trim() -and -not $_.TrimStart().StartsWith('#')
 } | ForEach-Object { $_.Trim().Replace('\', '/') })
 # Textures are loaded by Lua, not listed as executable files in the TOC
-$runtimeMediaPaths = @('media/cabinet.tga', 'media/symbols.tga', 'media/duration-fill.tga')
-$packagePaths = @("$addonName.toc", 'README.md', 'CHANGELOG.md') + $runtimePaths + $runtimeMediaPaths
+$runtimeMediaPaths = @('media/cabinet.tga', 'media/symbols.tga', 'media/duration-fill.tga',
+    $icon.Substring($iconPrefix.Length))
+$packagePaths = @("$addonName.toc", 'LICENSE', 'docs/CHANGELOG.md') + $runtimePaths + $runtimeMediaPaths
 if (@($packagePaths | Select-Object -Unique).Count -ne $packagePaths.Count) { throw 'Duplicate package path' }
 
 # Resolve every path segment with exact casing; never traverse outside this project

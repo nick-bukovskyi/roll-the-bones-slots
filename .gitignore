@@ -1,2 +1,7 @@
 /dist/
+/.release/
+.env
+.env.*
+AGENTS.md
+CLAUDE.md
 *.tmp

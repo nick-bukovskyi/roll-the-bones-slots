@@ -5,7 +5,7 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Drawing
-# Finished PNGs are authoritative; atlas exports preserve pixels, bar material fits its runtime strip
+# Source PNGs are authoritative; atlases preserve pixels while the bar and logo exports fit their target sizes
 Add-Type -ReferencedAssemblies @([System.Drawing.Bitmap].Assembly.Location, [System.Drawing.Color].Assembly.Location,
     'System.Runtime', 'System.Private.Windows.GdiPlus', 'System.Private.Windows.Core') -TypeDefinition @'
 using System;
@@ -45,7 +45,11 @@ public static class SlotTextureExport {
             }
 
             var pixels = fitted ?? image;
-            using (var writer = new BinaryWriter(bytes, System.Text.Encoding.UTF8, true))
+            if (Path.GetExtension(output).Equals(".png", StringComparison.OrdinalIgnoreCase))
+            {
+                pixels.Save(bytes, ImageFormat.Png);
+            }
+            else using (var writer = new BinaryWriter(bytes, System.Text.Encoding.UTF8, true))
             {
                 writer.Write(new byte[] { 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0 });
                 writer.Write((ushort)runtimeWidth);
@@ -112,5 +116,15 @@ foreach ($asset in @(
         (Join-Path $mediaDirectory ($asset.Name + '.tga')), $Check.IsPresent,
         $asset.Width, $asset.Height, $asset.RuntimeWidth, $asset.RuntimeHeight, $asset.Fit)
 }
-if ($Check) { Write-Output 'Verified all runtime textures match their canonical PNG exports' }
-else { Write-Output 'Exported padded cabinet and symbol atlas plus the compact 1024x128 duration fill' }
+$publicDirectory = Join-Path $ProjectRoot 'public'
+$logoSource = Join-Path $publicDirectory 'logo.png'
+$logoSourceSize = 1254
+foreach ($export in @(
+    @{ Name = 'logo.tga'; Size = 256 },
+    @{ Name = 'curseforge-icon.png'; Size = 400 }
+)) {
+    [SlotTextureExport]::Export($logoSource, (Join-Path $publicDirectory $export.Name),
+        $Check.IsPresent, $logoSourceSize, $logoSourceSize, $export.Size, $export.Size, $true)
+}
+if ($Check) { Write-Output 'Verified all artwork and logo exports match their source PNGs' }
+else { Write-Output 'Exported cabinet, symbols, duration fill, AddOns-list logo, and CurseForge icon' }

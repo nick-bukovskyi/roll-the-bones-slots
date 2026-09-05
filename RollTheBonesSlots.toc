@@ -1,10 +1,12 @@
 ## Interface: 120100
 ## Title: Roll the Bones Slots
+## IconTexture: Interface\AddOns\RollTheBonesSlots\public\logo.tga
 ## Notes: A small casino display for your Outlaw Roll the Bones result and remaining time
 ## Author: Sonterix
-## Version: dev
+## Version: 0.1.0
 ## SavedVariables: RollTheBonesSlotsDB
 ## RequiredDeps: Blizzard_AuraContainer
+## X-Curse-Project-ID: 1682397
 
 src\Config.lua
 src\Game.lua

@@ -1,0 +1,19 @@
+package-as: RollTheBonesSlots
+
+manual-changelog:
+  filename: docs/CHANGELOG.md
+  markup-type: markdown
+
+license-output: LICENSE
+
+ignore:
+  - README.md
+  - public/logo.png
+  - public/curseforge-icon.png
+  - art
+  - tests
+  - scripts
+  - dist
+  - pkgmeta.yaml
+  - AGENTS.md
+  - CLAUDE.md

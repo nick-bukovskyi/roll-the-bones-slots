@@ -1,4 +1,4 @@
-# Exercise the real PNG-to-TGA exporter with disposable canonical artwork
+# Exercise the real artwork and logo exporter with disposable source PNGs
 [CmdletBinding()]
 param()
 
@@ -12,6 +12,35 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
 public static class SlotArtExportFixture {
+    public static void WriteLogo(string path) {
+        using(var image = new Bitmap(1254, 1254, PixelFormat.Format32bppArgb))
+        using(var graphics = Graphics.FromImage(image))
+        using(var halfAlpha = new SolidBrush(Color.FromArgb(128, 0, 255, 0))) {
+            graphics.Clear(Color.Transparent);
+            graphics.FillRectangle(Brushes.Red, 627, 0, 627, 627);
+            graphics.FillRectangle(halfAlpha, 0, 627, 627, 627);
+            graphics.FillRectangle(Brushes.Blue, 627, 627, 627, 627);
+            image.Save(path, ImageFormat.Png);
+        }
+    }
+    public static void AssertLogoExports(string tgaPath, string pngPath) {
+        byte[] data = File.ReadAllBytes(tgaPath);
+        byte[] header = {0,0,2,0,0,0,0,0,0,0,0,0,0,1,0,1,32,0x28};
+        if(data.Length != 18 + 256*256*4) throw new Exception("Incorrect AddOns-list logo length");
+        for(int index = 0; index < header.Length; index++)
+            if(data[index] != header[index]) throw new Exception("Incorrect AddOns-list logo header");
+        uint[] expected = {0, 0xffff0000, 0x8000ff00, 0xff0000ff};
+        using(var image = new Bitmap(pngPath)) {
+            if(image.Width != 400 || image.Height != 400)
+                throw new Exception("CurseForge icon must be 400x400");
+            for(int row = 0; row < 2; row++) for(int column = 0; column < 2; column++) {
+                uint tgaPixel = BitConverter.ToUInt32(data, 18 + 4*((32 + row*192)*256 + 32 + column*192));
+                uint pngPixel = unchecked((uint)image.GetPixel(50 + column*300, 50 + row*300).ToArgb());
+                if(tgaPixel != expected[row*2 + column] || pngPixel != expected[row*2 + column])
+                    throw new Exception("Logo exports must preserve orientation, colors, and alpha");
+            }
+        }
+    }
     private static Color Pixel(int x, int y, int seed) {
         // Include every alpha value, colored transparent pixels, and distinct rows
         return Color.FromArgb((x + 3*y) % 256, (x + seed*17) % 256,
@@ -73,6 +102,7 @@ $fixtureRoot = Join-Path $temporaryRoot ('RollTheBonesSlots-art-test-' + [guid]:
 $null = New-Item -ItemType Directory -Path $fixtureRoot
 $artDirectory = Join-Path $fixtureRoot 'art'
 $mediaDirectory = Join-Path $fixtureRoot 'media'
+$publicDirectory = Join-Path $fixtureRoot 'public'
 $checks = 0
 
 function Get-FixtureState {
@@ -96,25 +126,39 @@ function Assert-ExportCheckRejected {
 }
 
 try {
-    $null = New-Item -ItemType Directory -Path $artDirectory
+    $null = New-Item -ItemType Directory -Path $artDirectory, $publicDirectory
     $cabinetSource = Join-Path $artDirectory 'cabinet.png'
     $symbolsSource = Join-Path $artDirectory 'symbols.png'
     $fillSource = Join-Path $artDirectory 'duration-fill.png'
     [SlotArtExportFixture]::WritePng($cabinetSource, 1, 1024, 630)
     [SlotArtExportFixture]::WritePng($symbolsSource, 2, 1024, 832)
     [SlotArtExportFixture]::WriteFill($fillSource)
+    [SlotArtExportFixture]::WriteLogo((Join-Path $publicDirectory 'logo.png'))
     & $exportScript -ProjectRoot $fixtureRoot | Out-Null
     $cabinetOutput = Join-Path $mediaDirectory 'cabinet.tga'
     $symbolsOutput = Join-Path $mediaDirectory 'symbols.tga'
     $fillOutput = Join-Path $mediaDirectory 'duration-fill.tga'
+    $logoOutput = Join-Path $publicDirectory 'logo.tga'
+    $curseforgeOutput = Join-Path $publicDirectory 'curseforge-icon.png'
     [SlotArtExportFixture]::AssertTga($cabinetOutput, 1, 630)
     [SlotArtExportFixture]::AssertTga($symbolsOutput, 2, 832)
     [SlotArtExportFixture]::AssertFill($fillOutput)
-    $checks += 3
+    [SlotArtExportFixture]::AssertLogoExports($logoOutput, $curseforgeOutput)
+    $checks += 4
     if (@(Get-ChildItem -LiteralPath $mediaDirectory -File).Count -ne 3) {
         throw 'Export created unexpected runtime textures'
     }
     $checks++
+
+    foreach ($logoExport in @($logoOutput, $curseforgeOutput)) {
+        $freshLogo = [IO.File]::ReadAllBytes($logoExport)
+        $staleLogo = [byte[]]$freshLogo.Clone()
+        $staleLogo[$staleLogo.Length - 1] = $staleLogo[$staleLogo.Length - 1] -bxor 1
+        [IO.File]::WriteAllBytes($logoExport, $staleLogo)
+        Assert-ExportCheckRejected 'altered logo export' 'Stale texture export'
+        [IO.File]::WriteAllBytes($logoExport, $freshLogo)
+        $checks++
+    }
 
     foreach ($file in Get-ChildItem -LiteralPath $fixtureRoot -File -Recurse) {
         $file.LastWriteTimeUtc = [datetime]::new(2001, 1, 1, 0, 0, 0, [DateTimeKind]::Utc)
