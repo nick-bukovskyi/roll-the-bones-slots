@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.2] - 2026-09-05
+
+### Fixed
+
+- The chest and its Edit Mode controls now appear only for Outlaw Rogues. Switching specializations hides the chest and stops its animations and buff tracking until you return to Outlaw.
+- Other classes and Rogue specializations no longer set up the chest or change its saved settings on login.
+
 ## [0.1.1] - 2026-09-05
 
 ### Added

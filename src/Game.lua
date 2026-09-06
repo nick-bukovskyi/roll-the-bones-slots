@@ -23,7 +23,18 @@ function Game.IsSupportedClient()
   return WOW_PROJECT_ID == WOW_PROJECT_MAINLINE and version == TARGET_VERSION and build == TARGET_BUILD
 end
 
+function Game.IsRogue()
+  local _, classToken = UnitClass("player")
+  if issecretvalue(classToken) or classToken == nil then
+    return nil
+  end
+  return classToken == "ROGUE"
+end
+
 function Game.IsOutlaw()
+  if not Game.IsRogue() then
+    return false
+  end
   local index = C_SpecializationInfo.GetSpecialization()
   if issecretvalue(index) or not index or index == 0 then
     return false

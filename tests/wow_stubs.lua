@@ -29,6 +29,7 @@ function H.install()
   H.nativeSlots, H.alphaWrites, H.pointWrites, H.textureWrites = {}, {}, {}, 0
   H.clock = 0
   H.build, H.version, H.spec, H.known = "69587", "12.1.0", 260, true
+  H.classToken, H.specIndex = "ROGUE", 2
   H.combat, H.restricted, H.cinematic, H.petBattle, H.loggedIn = false, false, false, false, false
   H.playerCombat = false
   H.shift = false
@@ -871,20 +872,32 @@ function H.install()
     end,
   }
   _G.C_SpecializationInfo = {
-    GetSpecialization = function()
-      return 2
+    GetSpecialization = function(...)
+      H.eq(select("#", ...), 0)
+      return H.specIndex
     end,
-    GetSpecializationInfo = function(index)
-      H.eq(index, 2)
+    GetSpecializationInfo = function(index, ...)
+      H.eq(select("#", ...), 0)
+      assert(not rawequal(index, secret) and type(index) == "number" and index > 0)
+      H.eq(index, H.specIndex)
       return H.spec
     end,
   }
   _G.C_SpellBook = {
-    IsSpellKnown = function(id)
+    IsSpellKnown = function(id, ...)
+      H.eq(select("#", ...), 0)
       H.eq(id, 1214909)
       return H.known
     end,
   }
+  _G.UnitClass = function(unit, ...)
+    H.eq(select("#", ...), 0)
+    H.eq(unit, "player")
+    if H.classToken == nil then
+      return
+    end
+    return "Player class", H.classToken, 4
+  end
   _G.C_AddOns = {
     GetAddOnMetadata = function(addon, key)
       H.eq(addon, "RollTheBonesSlots")

@@ -1,15 +1,61 @@
 -- Lifecycle owns presentation availability; Edit Mode owns the preview session
 local ADDON_NAME, ns = ...
-local loaded, initialized = false, false
+local loaded, initialized, active = false, false, false
 local inWorld, moviePlaying, layoutDirty = true, false, false
 local lastCastGUID
 local eventFrame = CreateFrame("Frame")
+local RUNTIME_EVENTS = {
+  "PLAYER_DEAD",
+  "PLAYER_ALIVE",
+  "CINEMATIC_START",
+  "CINEMATIC_STOP",
+  "PET_BATTLE_OPENING_START",
+  "PET_BATTLE_CLOSE",
+  "UI_SCALE_CHANGED",
+  "DISPLAY_SIZE_CHANGED",
+  "PLAYER_REGEN_DISABLED",
+  "PLAYER_REGEN_ENABLED",
+  "ENCOUNTER_START",
+  "ENCOUNTER_END",
+  "CHALLENGE_MODE_START",
+  "CHALLENGE_MODE_COMPLETED",
+  "CHALLENGE_MODE_RESET",
+  "PVP_MATCH_STATE_CHANGED",
+}
 
 local function Refresh()
-  if not initialized then
+  local eligible = ns.Game.IsOutlaw()
+  if not eligible and not active then
     return
   end
-  local available = inWorld and not InCinematic() and not moviePlaying and not C_PetBattles.IsInBattle()
+  if not initialized then
+    ns.Config.Initialize(_G.RollTheBonesSlotsDB)
+    ns.Machine.Initialize()
+    ns.EditMode.Initialize(Refresh)
+    initialized = true
+    if ns.Config.IsReadOnly() then
+      print("Roll the Bones Slots: Newer saved settings preserved; using read-only defaults")
+    end
+  end
+  if active ~= eligible then
+    active = eligible
+    lastCastGUID = nil
+    if active then
+      layoutDirty = true
+      eventFrame:RegisterUnitEvent("UNIT_SPELLCAST_SUCCEEDED", "player")
+      for _, event in ipairs(RUNTIME_EVENTS) do
+        eventFrame:RegisterEvent(event)
+      end
+      ns.EditMode.TryAttachManager()
+      ns.EditMode.TryAttachOverlayToggle()
+    else
+      eventFrame:UnregisterEvent("UNIT_SPELLCAST_SUCCEEDED")
+      for _, event in ipairs(RUNTIME_EVENTS) do
+        eventFrame:UnregisterEvent(event)
+      end
+    end
+  end
+  local available = active and inWorld and not InCinematic() and not moviePlaying and not C_PetBattles.IsInBattle()
   ns.EditMode.SetAvailable(available)
   if layoutDirty and ns.Game.CanConfigure() then
     ns.Machine.ApplyPosition()
@@ -22,7 +68,7 @@ local function Refresh()
     if preview then
       presentation = "preview"
       -- Blizzard substitutes its own fake aura provider throughout Edit Mode
-    elseif not ns.EditMode.IsActive() and ns.Game.IsOutlaw() and (visibility ~= "combat" or UnitAffectingCombat("player")) then
+    elseif not ns.EditMode.IsActive() and (visibility ~= "combat" or UnitAffectingCombat("player")) then
       presentation = visibility == "active" and "active" or "live"
     end
   end
@@ -30,57 +76,37 @@ local function Refresh()
 end
 
 local function StopInteraction()
+  if not initialized then
+    return
+  end
   ns.EditMode.CancelInteraction()
   ns.Machine.StopSpin()
 end
 
-local function Initialize()
-  if initialized then
-    return
-  end
+local function Start()
   eventFrame:UnregisterEvent("PLAYER_LOGIN")
   if not ns.Game.IsSupportedClient() then
     eventFrame:UnregisterEvent("ADDON_LOADED")
     print("Roll the Bones Slots: Inactive on this client; this build targets " .. ns.Game.ClientLabel)
     return
   end
-  ns.Machine.Initialize()
-  ns.EditMode.Initialize(Refresh)
-  initialized = true
-  ns.EditMode.TryAttachManager()
-  ns.EditMode.TryAttachOverlayToggle()
-  eventFrame:RegisterUnitEvent("UNIT_SPELLCAST_SUCCEEDED", "player")
+  if ns.Game.IsRogue() == false then
+    eventFrame:UnregisterEvent("ADDON_LOADED")
+    return
+  end
+  -- Keep only eligibility and world/overlay state while another spec is active
   for _, event in ipairs({
     "PLAYER_LEAVING_WORLD",
     "PLAYER_SPECIALIZATION_CHANGED",
     "SPELLS_CHANGED",
     "TRAIT_CONFIG_UPDATED",
-    "PLAYER_DEAD",
-    "PLAYER_ALIVE",
-    "CINEMATIC_START",
-    "CINEMATIC_STOP",
     "PLAY_MOVIE",
     "STOP_MOVIE",
-    "PET_BATTLE_OPENING_START",
-    "PET_BATTLE_CLOSE",
-    "UI_SCALE_CHANGED",
-    "DISPLAY_SIZE_CHANGED",
-    "PLAYER_REGEN_DISABLED",
-    "PLAYER_REGEN_ENABLED",
     "PLAYER_ENTERING_WORLD",
-    "ENCOUNTER_START",
-    "ENCOUNTER_END",
-    "CHALLENGE_MODE_START",
-    "CHALLENGE_MODE_COMPLETED",
-    "CHALLENGE_MODE_RESET",
-    "PVP_MATCH_STATE_CHANGED",
   }) do
     eventFrame:RegisterEvent(event)
   end
   Refresh()
-  if ns.Config.IsReadOnly() then
-    print("Roll the Bones Slots: Newer saved settings preserved; using read-only defaults")
-  end
 end
 
 eventFrame:SetScript("OnEvent", function(_, event, ...)
@@ -91,15 +117,12 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
     end
     if name == ADDON_NAME and not loaded then
       loaded = true
-      if ns.Game.IsSupportedClient() then
-        ns.Config.Initialize(_G.RollTheBonesSlotsDB)
-      end
       if IsLoggedIn() then
-        Initialize()
+        Start()
       else
         eventFrame:RegisterEvent("PLAYER_LOGIN")
       end
-    elseif initialized then
+    elseif active then
       -- Optional Edit Mode providers can load or replace their eye after login
       ns.EditMode.TryAttachOverlayToggle()
       if name == "Blizzard_EditMode" then
@@ -109,10 +132,10 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
     end
     return
   elseif event == "PLAYER_LOGIN" then
-    Initialize()
+    Start()
     return
   end
-  if not initialized then
+  if not loaded then
     return
   end
 
