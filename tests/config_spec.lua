@@ -5,12 +5,13 @@ return function(test, ns, harness)
   test("first load creates conservative account-wide defaults", function()
     local root = Config.Initialize(nil)
     eq(_G.RollTheBonesSlotsDB, root)
-    eq(root.schemaVersion, 2)
+    eq(root.schemaVersion, 3)
     eq(Config.GetScale(), 1)
     local x, y = Config.GetPosition()
     eq(x, 0)
     eq(y, 140)
     eq(Config.GetAnimationEnabled(), true)
+    eq(Config.GetCompactMode(), false)
     eq(Config.IsReadOnly(), false)
   end)
 
@@ -39,7 +40,7 @@ return function(test, ns, harness)
   test("unversioned preferences gain missing fields without replacing valid fields", function()
     local root = { scale = 0.75, x = 85, animationEnabled = false, extra = "preserved" }
     Config.Initialize(root)
-    eq(root.schemaVersion, 2)
+    eq(root.schemaVersion, 3)
     eq(root.scale, 0.75)
     eq(root.x, 85)
     eq(root.y, 140)
@@ -57,7 +58,7 @@ return function(test, ns, harness)
       extra = "preserved",
     }
     Config.Initialize(root)
-    eq(root.schemaVersion, 2)
+    eq(root.schemaVersion, 3)
     eq(root.scale, 1)
     eq(root.x, 90.25)
     eq(root.y, 140)
@@ -70,7 +71,7 @@ return function(test, ns, harness)
       local root = Config.Initialize(invalid)
       eq(type(root), "table")
       eq(root.scale, 1)
-      eq(root.schemaVersion, 2)
+      eq(root.schemaVersion, 3)
     end
     local root = Config.Initialize({
       schemaVersion = harness.secret,
@@ -79,7 +80,7 @@ return function(test, ns, harness)
       y = 12,
       animationEnabled = harness.secret,
     })
-    eq(root.schemaVersion, 2)
+    eq(root.schemaVersion, 3)
     eq(root.scale, 1)
     eq(root.x, 0)
     eq(root.y, 12)
@@ -136,6 +137,52 @@ return function(test, ns, harness)
     eq(y, 37.5)
   end)
 
+  test("compact migration preserves existing preferences and validates the new field independently", function()
+    for _, version in ipairs({ 1, 2, 3 }) do
+      for _, value in ipairs({ true, false, "true", 0, {}, harness.secret }) do
+        local root = {
+          schemaVersion = version,
+          scale = 0.1,
+          x = 80,
+          y = -60,
+          animationEnabled = false,
+          durationBarEnabled = false,
+          visibility = "active",
+          compactMode = value,
+          extra = "preserved",
+        }
+        Config.Initialize(root)
+        eq(Config.GetCompactMode(), value == true)
+        eq(root.schemaVersion, 3)
+        eq(root.scale, 0.1)
+        eq(root.x, 80)
+        eq(root.y, -60)
+        eq(root.animationEnabled, false)
+        eq(root.durationBarEnabled, false)
+        eq(root.visibility, "active")
+        eq(root.extra, "preserved")
+      end
+    end
+    local root = Config.Initialize({ schemaVersion = 2, scale = 0.1 })
+    eq(root.compactMode, false)
+    eq(Config.SetCompactMode(true), true)
+    for _, invalid in ipairs({ "false", 0, {}, harness.secret }) do
+      eq(Config.SetCompactMode(invalid), false)
+      eq(root.compactMode, true)
+    end
+    eq(Config.SetCompactMode(nil), false)
+    Config.Initialize(root)
+    eq(Config.GetCompactMode(), true)
+    eq(Config.GetScale(), 0.1)
+    Config.Reset()
+    eq(root.compactMode, false)
+    local future = { schemaVersion = 4, compactMode = "future layout" }
+    Config.Initialize(future)
+    eq(Config.GetCompactMode(), false)
+    eq(Config.SetCompactMode(true), false)
+    eq(future.compactMode, "future layout")
+  end)
+
   test("animation changes require actual boolean preferences", function()
     local root = Config.Initialize(nil)
     eq(Config.SetAnimationEnabled(false), true)
@@ -160,7 +207,7 @@ return function(test, ns, harness)
     })
     eq(Config.Reset(), true)
     eq(_G.RollTheBonesSlotsDB, root)
-    eq(root.schemaVersion, 2)
+    eq(root.schemaVersion, 3)
     eq(root.scale, 1)
     eq(root.x, 0)
     eq(root.y, 140)
@@ -171,7 +218,7 @@ return function(test, ns, harness)
   test("a newer schema stays untouched and cannot be changed by older settings controls", function()
     local unknown = { retained = true }
     local root = {
-      schemaVersion = 3,
+      schemaVersion = 4,
       scale = 1.7,
       x = "future position",
       y = false,
@@ -190,7 +237,7 @@ return function(test, ns, harness)
     eq(Config.SetPosition(2, 3), false)
     eq(Config.SetAnimationEnabled(false), false)
     eq(Config.Reset(), false)
-    eq(root.schemaVersion, 3)
+    eq(root.schemaVersion, 4)
     eq(root.scale, 1.7)
     eq(root.x, "future position")
     eq(root.y, false)

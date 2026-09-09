@@ -31,7 +31,11 @@ return function(test, H, loadAddon)
   local function previewBars()
     local bars = {}
     for _, widget in ipairs(H.frames) do
-      if widget.kind == "StatusBar" and widget.parent.kind ~= "AuraButton" then
+      if
+        widget.kind == "StatusBar"
+        and widget.parent.kind ~= "AuraButton"
+        and widget.parent.parent == H.nativeSlots[14].container.parent
+      then
         bars[#bars + 1] = widget
       end
     end
@@ -76,13 +80,13 @@ return function(test, H, loadAddon)
     eq(Config.GetDurationBarEnabled(), false)
     eq(Config.Reset(), true)
     eq(saved.durationBarEnabled, true)
-    local future = { schemaVersion = 3, durationBarEnabled = "future value" }
+    local future = { schemaVersion = 4, durationBarEnabled = "future value" }
     Config.Initialize(future)
     eq(Config.GetDurationBarEnabled(), true)
     eq(Config.SetDurationBarEnabled(false), false)
     eq(Config.Reset(), false)
     eq(future.durationBarEnabled, "future value")
-    eq(future.schemaVersion, 3)
+    eq(future.schemaVersion, 4)
   end)
 
   test("native bar binds remaining duration for the same buffs below the unchanged footer labels", function()

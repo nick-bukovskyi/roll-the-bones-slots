@@ -17,7 +17,7 @@ return function(test, H, loadAddon)
   local function samples()
     local found = {}
     for _, frame in ipairs(H.frames) do
-      if frame.parent == H.cabinet() and frame.kind == "Frame" then
+      if frame.kind == "Frame" and frame.parent == H.nativeSlots[14].container.parent then
         for _, foreground in ipairs(frame.children) do
           for _, child in ipairs(foreground.children) do
             if child.kind == "FontString" and rawget(child, "text") == "26 s" then
@@ -44,9 +44,16 @@ return function(test, H, loadAddon)
   end
   local function nativeEnabled(expected)
     local containers = H.containers()
-    eq(#containers, 15)
+    eq(#containers, 24)
     for _, container in ipairs(containers) do
-      eq(container.enabled, expected and container ~= H.nativeSlots[13].container)
+      local compactFooter = container.parent == H.nativeSlots[26].container.parent
+      eq(
+        container.enabled,
+        expected
+          and not compactFooter
+          and H.nativeCabinetFile(container) ~= "cabinet-compact.tga"
+          and container ~= H.nativeSlots[13].container
+      )
     end
   end
   local function carriers()
@@ -66,9 +73,9 @@ return function(test, H, loadAddon)
   local function assertSettled()
     local moving = carriers()
     for index, carrier in ipairs(moving) do
-      local point = carrier.points.TOPLEFT
+      local point = carrier.points.CENTER
       eq(point[1], carrier.parent)
-      eq(point[2], "TOPLEFT")
+      eq(point[2], "CENTER")
       eq(point[4], 0)
       if index == 1 then
         eq(point[3], 0)
@@ -76,12 +83,17 @@ return function(test, H, loadAddon)
         assert(point[3] == 0 or point[3] == -128 or point[3] == -256)
       end
       for _, sibling in ipairs(carrier.parent.children) do
-        if sibling.kind == "Frame" and sibling ~= carrier then
-          eq(sibling.allPoints, carrier.parent) -- Lights stay fixed while the carrier moves
+        if sibling.kind == "Frame" and sibling.points.CENTER then
+          eq(sibling.points.CENTER[1], carrier.parent) -- Lights stay fixed while the carrier moves
+          eq(sibling.points.CENTER[4], 0)
+        elseif sibling.kind == "Frame" and sibling ~= carrier then
+          eq(sibling.points.TOPLEFT[1], carrier.parent) -- Stationary mode covers fill the clipping boundary
+          eq(sibling.points.TOPLEFT[3], 0)
+          eq(sibling.points.TOPLEFT[4], 0)
         end
       end
     end
-    assert(moving[2].points.TOPLEFT[3] ~= moving[3].points.TOPLEFT[3])
+    assert(moving[2].points.CENTER[3] ~= moving[3].points.CENTER[3])
     eq(H.cabinet().scripts.OnUpdate, nil)
   end
 
@@ -95,7 +107,7 @@ return function(test, H, loadAddon)
     eq(saved.schemaVersion, nil)
     eq(#H.frames, 1)
     H.fire("PLAYER_LOGIN")
-    eq(saved.schemaVersion, 2)
+    eq(saved.schemaVersion, 3)
     local count, hooks = #H.frames, H.hookCount
     H.fire("PLAYER_LOGIN")
     H.fire("ADDON_LOADED", "RollTheBonesSlots")
@@ -107,7 +119,7 @@ return function(test, H, loadAddon)
     eq(#H.frames, count)
     eq(H.hookCount, hooks)
     eq(hooks, 4)
-    eq(H.auraSlotCount, 24)
+    eq(H.auraSlotCount, 33)
     eq(ns.Machine.GetFrame(), H.cabinet())
     eq(H.cabinet():IsVisible(), true)
     eq(next(SlashCmdList), nil)
@@ -141,7 +153,7 @@ return function(test, H, loadAddon)
     H.loggedIn = true
     EditModeManagerFrame = nil
     H.fire("ADDON_LOADED", "RollTheBonesSlots")
-    eq(H.auraSlotCount, 24)
+    eq(H.auraSlotCount, 33)
     eq(H.hookCount, 0)
     H.fire("ADDON_LOADED", "Unrelated")
     eq(H.hookCount, 0)
@@ -224,19 +236,19 @@ return function(test, H, loadAddon)
       eq(rawget(carrier, "clipsChildren") or false, false)
       eq(carrier.width, carrier.parent.width)
       eq(carrier.height, carrier.parent.height)
-      eq(carrier.points.TOPLEFT[4], ns.Art.SpinRows * ns.Art.Pitch)
+      eq(carrier.points.CENTER[4], ns.Art.SpinRows * ns.Art.Pitch)
       eq(carrier:IsShown(), true)
     end
     H.advance(0.9)
-    local first, second, third = moving[1].points.TOPLEFT[4], moving[2].points.TOPLEFT[4], moving[3].points.TOPLEFT[4]
+    local first, second, third = moving[1].points.CENTER[4], moving[2].points.CENTER[4], moving[3].points.CENTER[4]
     assert(first > 0 and first < second and second < third)
     H.advance(0.2)
-    assert(moving[1].points.TOPLEFT[4] < 0)
+    assert(moving[1].points.CENTER[4] < 0)
     H.advance(0.07)
-    eq(moving[1].points.TOPLEFT[4], 0)
+    eq(moving[1].points.CENTER[4], 0)
     H.advance(0.16)
-    eq(moving[2].points.TOPLEFT[4], 0)
-    assert(moving[3].points.TOPLEFT[4] > 0)
+    eq(moving[2].points.CENTER[4], 0)
+    assert(moving[3].points.CENTER[4] > 0)
     H.advance(0.2)
     assertSettled()
     nativeEnabled(true)
@@ -258,7 +270,7 @@ return function(test, H, loadAddon)
     H.advance(0.95)
     spin("second")
     for _, carrier in ipairs(carriers()) do
-      eq(carrier.points.TOPLEFT[4], ns.Art.SpinRows * ns.Art.Pitch)
+      eq(carrier.points.CENTER[4], ns.Art.SpinRows * ns.Art.Pitch)
     end
     H.advance(0.9)
     ns.Machine.StopSpin()
@@ -275,14 +287,14 @@ return function(test, H, loadAddon)
     selectCabinet()
     H.button("Test spin").scripts.OnClick()
     H.advance(0.9)
-    local animation = H.findTemplate("UICheckButtonTemplate")
+    local animation = H.checkbox("Animate reels and wins")
     animation:SetChecked(false)
     animation.scripts.OnClick(animation)
     assertSettled()
     H.exitEditMode()
     spin("reduced-motion")
     assertSettled()
-    eq(H.auraSlotCount, 24)
+    eq(H.auraSlotCount, 33)
   end)
 
   test("Edit Mode owns the only preview and samples never coexist with native results", function()
@@ -371,7 +383,7 @@ return function(test, H, loadAddon)
     selectCabinet()
     H.button("Test spin").scripts.OnClick()
     assert(H.cabinet().scripts.OnUpdate)
-    local animation = H.findTemplate("UICheckButtonTemplate")
+    local animation = H.checkbox("Animate reels and wins")
     animation:SetChecked(false)
     animation.scripts.OnClick(animation)
     eq(ns.Config.GetAnimationEnabled(), false)
@@ -420,7 +432,7 @@ return function(test, H, loadAddon)
       selectCabinet()
       eq(#H.frames, count)
       eq(H.hookCount, hooks)
-      eq(H.auraSlotCount, 24)
+      eq(H.auraSlotCount, 33)
     end
     H.exitEditMode()
   end)
@@ -501,7 +513,7 @@ return function(test, H, loadAddon)
   end)
 
   test("future saved schema remains read-only including during Edit Mode", function()
-    local saved = { schemaVersion = 3, scale = 1.7, x = "future", extra = "preserved" }
+    local saved = { schemaVersion = 4, scale = 1.7, x = "future", extra = "preserved" }
     local ns = login(saved)
     H.enterEditMode()
     eq(ns.Config.IsReadOnly(), true)
@@ -511,7 +523,7 @@ return function(test, H, loadAddon)
     eq(H.findTemplate("InputBoxTemplate"), nil)
     H.exitEditMode()
     nativeEnabled(true)
-    eq(saved.schemaVersion, 3)
+    eq(saved.schemaVersion, 4)
     eq(saved.scale, 1.7)
     eq(saved.x, "future")
     eq(saved.extra, "preserved")

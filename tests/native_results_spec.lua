@@ -53,18 +53,6 @@ return function(test, H, loadAddon)
     end)
     return rows, backgrounds
   end
-  local function covers(backgrounds, top, bottom, width, left)
-    left = left or 0
-    local covered = top
-    for _, rect in ipairs(backgrounds) do
-      assert(rect.left <= left and rect.right >= left + width)
-      if rect.top <= covered and rect.bottom >= covered then
-        covered = rect.bottom
-      end
-    end
-    assert(covered >= bottom, "opaque strip backing leaves an uncovered interval")
-  end
-
   test("clipped reel windows stay above both cabinet backgrounds through visibility and preview transitions", function()
     for _, mode in ipairs({ "active", "always", "combat" }) do
       for _, scale in ipairs({ 0.6, 1, 1.8 }) do
@@ -78,8 +66,8 @@ return function(test, H, loadAddon)
         for _, widget in ipairs(H.widgets) do
           if
             widget.kind == "Texture"
-            and widget.width == ns.Art.Width
-            and widget.height == ns.Art.Height
+            and widget.width == ns.Layouts.Width
+            and widget.height == ns.Layouts.Full.height
             and rawget(widget, "texture") == "Interface\\AddOns\\RollTheBonesSlots\\public\\art\\cabinet.tga"
           then
             cabinets[#cabinets + 1] = widget.parent
@@ -284,64 +272,78 @@ return function(test, H, loadAddon)
   end)
 
   test("only the live buff row accepts hover with either duration bar preference", function()
-    for _, scale in ipairs({ 0.6, 1, 1.8 }) do
-      for _, showBar in ipairs({ true, false }) do
-        local ns = loadAddon({ scale = scale, durationBarEnabled = showBar })
-        H.fire("ADDON_LOADED", "RollTheBonesSlots")
-        H.loggedIn = true
-        H.fire("PLAYER_LOGIN")
-        local footer
-        for _, slot in ipairs(H.nativeSlots) do
-          local button = slot.button
-          if button.bindings.SetSpellName then
-            assert(not footer, "only one native footer may accept hover")
-            footer = slot
-            eq(button.mouse, true)
-            local row = rectangle(button.children[1])
-            local insets = assert(rawget(button, "hitRectInsets"), "footer hover covers the cabinet")
-            eq(insets[1], row.left)
-            eq(button.width - insets[2], row.right)
-            eq(insets[3], row.top)
-            eq(button.height - insets[4], row.bottom)
-          else
-            eq(button.mouse, false)
+    for _, compact in ipairs({ false, true }) do
+      for _, scale in ipairs({ 0.1, 1, 1.8 }) do
+        for _, showBar in ipairs({ true, false }) do
+          local ns = loadAddon({ compactMode = compact, scale = scale, durationBarEnabled = showBar })
+          H.fire("ADDON_LOADED", "RollTheBonesSlots")
+          H.loggedIn = true
+          H.fire("PLAYER_LOGIN")
+          local footer
+          for _, slot in ipairs(H.nativeSlots) do
+            local button = slot.button
+            if button.bindings.SetSpellName then
+              if slot.container.enabled then
+                assert(not footer, "only one native footer may accept hover")
+                footer = slot
+                eq(slot.container.shown, true)
+                eq(slot.container.parent.shown, true)
+              else
+                eq(slot.container.shown, false)
+                eq(slot.container.parent.shown, false)
+              end
+              eq(button.mouse, true)
+              local row = rectangle(button.children[1])
+              local insets = assert(rawget(button, "hitRectInsets"), "footer hover covers the cabinet")
+              eq(insets[1], row.left)
+              eq(button.width - insets[2], row.right)
+              eq(insets[3], row.top)
+              eq(button.height - insets[4], row.bottom)
+            else
+              eq(button.mouse, false)
+            end
           end
+          assert(footer, "live buff row needs its native tooltip")
+          eq(footer.container.enabled, true)
+          local slots = #H.nativeSlots
+          H.enterEditMode()
+          eq(footer.container.enabled, false)
+          H.exitEditMode()
+          eq(footer.container.enabled, true)
+          H.fire("PLAYER_LEAVING_WORLD")
+          eq(footer.container.enabled, false)
+          H.fire("PLAYER_ENTERING_WORLD", false, false)
+          eq(footer.container.enabled, true)
+          eq(#H.nativeSlots, slots)
         end
-        assert(footer, "live buff row needs its native tooltip")
-        eq(footer.container.enabled, true)
-        local slots = #H.nativeSlots
-        H.enterEditMode()
-        eq(footer.container.enabled, false)
-        H.exitEditMode()
-        eq(footer.container.enabled, true)
-        H.fire("PLAYER_LEAVING_WORLD")
-        eq(footer.container.enabled, false)
-        H.fire("PLAYER_ENTERING_WORLD", false, false)
-        eq(footer.container.enabled, true)
-        eq(#H.nativeSlots, slots)
       end
     end
   end)
 
-  test("native result strips cover dim idle artwork and the native footer covers the idle message", function()
+  test("each mode uses opaque stationary well covers and a native footer above its empty fallback", function()
     local ns = loadAddon()
     ns.Config.Initialize(nil)
     ns.Machine.Initialize()
-    local file = assert(io.open("public/art/cabinet.tga", "rb"))
-    local pixels = file:read("*a")
-    file:close()
-    -- The shipped exporter writes uncompressed BGRA pixels in top-left order
-    eq(pixels:sub(1, 3), "\0\0\2")
-    eq(pixels:byte(17), 32)
-    eq(pixels:byte(18), 40)
-    local width = pixels:byte(13) + pixels:byte(14) * 256
-    local height = pixels:byte(15) + pixels:byte(16) * 256
+    local atlases = {}
     local checked = {}
     local function opaqueAbove(texture, empty)
       assert(texture.parent.frameLevel > empty.parent.frameLevel, "native background must cover empty artwork on a strictly higher frame")
       eq(rawget(texture, "alpha") or 1, 1)
+      local name = texture.texture:match("([^\\]+)$")
+      if not atlases[name] then
+        local file = assert(io.open("public/art/" .. name, "rb"))
+        atlases[name] = file:read("*a")
+        file:close()
+      end
+      local pixels = atlases[name]
+      -- The shipped exporter writes uncompressed BGRA pixels in top-left order
+      eq(pixels:sub(1, 3), "\0\0\2")
+      eq(pixels:byte(17), 32)
+      eq(pixels:byte(18), 40)
+      local width = pixels:byte(13) + pixels:byte(14) * 256
+      local height = pixels:byte(15) + pixels:byte(16) * 256
       local uv = texture.texCoords
-      local key = table.concat(uv, ",")
+      local key = name .. table.concat(uv, ",")
       if checked[key] then
         return
       end
@@ -353,50 +355,63 @@ return function(test, H, loadAddon)
       end
       checked[key] = true
     end
-    eq(#H.nativeSlots, 24)
-    for index = 1, 13 do
-      local slot = H.nativeSlots[index == 13 and 14 or index]
-      -- Inspect test construction metadata only, never invoke a sealed native object
-      local button = slot.button
-      if index <= 12 then
-        local carrier = slot.container.parent
-        eq(button.width, carrier.width)
-        eq(button.height, carrier.height)
-        eq(next(button.bindings), nil)
-        for lane = 1, index <= 4 and 1 or 3 do
-          local x = (lane - 1) * ns.Art.LanePitch
-          local rows, backgrounds = strip(button, ns.Art.Pitch, x)
-          local idle = strip(carrier, ns.Art.Pitch, x)
-          covers(backgrounds, 0, button.height, button.width, x)
-          eq(assert(rows[0]).alpha, 1)
-          eq(assert(idle[0]).alpha, 0.22)
-          for _, texture in ipairs(H.reelRegions(button)) do
-            if texture.drawLayer == "BACKGROUND" then
-              opaqueAbove(texture, idle[0])
+    eq(#H.nativeSlots, 33)
+    for _, compact in ipairs({ false, true }) do
+      ns.Config.SetCompactMode(compact)
+      ns.Machine.ApplyPosition()
+      ns.Machine.SetPresentation("live")
+      local wellCovers = H.reelCovers(compact)
+      for index = 1, 4 do
+        local slot = index <= 3 and wellCovers[index] or H.nativeSlots[compact and 26 or 14]
+        -- Inspect test construction metadata only, never invoke a sealed native object
+        local button = slot.button
+        if index <= 3 then
+          local carrier = H.nativeSlots[(index - 1) * 4 + 1].container.parent
+          local texture = button.children[1]
+          eq(slot.container.parent.parent, carrier.parent)
+          local wellRect = H.frameRect(carrier.parent, ns.Machine.GetFrame())
+          local coverRect = H.frameRect(texture, ns.Machine.GetFrame())
+          for key, value in pairs(wellRect) do
+            eq(coverRect[key], value)
+          end
+          eq(slot.container.enabled, true)
+          eq(next(button.bindings), nil)
+          local idle = strip(carrier, ns.Art.Pitch)
+          opaqueAbove(texture, assert(idle[0]))
+          for result = 1, 4 do
+            local native = H.nativeSlots[(index - 1) * 4 + result].button
+            local rows = strip(native, ns.Art.Pitch)
+            assert(rows[0].parent.frameLevel > button.frameLevel, "well cover hides live symbols")
+          end
+          for _, group in ipairs(H.animationGroups) do
+            for _, animation in ipairs(group.animations) do
+              if animation.target.parent == carrier.parent then
+                assert(animation.target.frameLevel > button.frameLevel, "well cover hides winning lights")
+              end
             end
           end
-        end
-      else
-        local backing = button.children[1]
-        local binding = button.bindings
-        local foreground = binding.SetSpellName.parent
-        eq(foreground.parent, button)
-        eq(binding.SetIcon.parent, foreground)
-        eq(binding.SetDurationText.parent, foreground)
-        local idleLabel
-        for _, child in ipairs(H.widgets) do
-          if rawget(child, "text") == "Try yer luck, matey!" and child.parent.parent == ns.Machine.GetFrame() then
-            idleLabel = child
+        else
+          local backing = button.children[1]
+          local binding = button.bindings
+          local foreground = binding.SetSpellName.parent
+          eq(foreground.parent, button)
+          eq(binding.SetIcon.parent, foreground)
+          eq(binding.SetDurationText.parent, foreground)
+          local idleLabel
+          for _, child in ipairs(H.widgets) do
+            if rawget(child, "text") == "Try yer luck, matey!" and child.parent == slot.container.parent then
+              idleLabel = child
+            end
           end
+          assert(idleLabel, "idle footer needs the pirate invitation")
+          opaqueAbove(backing, idleLabel)
+          local coverPoint, labelPoint = backing.points.TOPLEFT, idleLabel.points.TOPLEFT
+          assert(coverPoint[3] <= labelPoint[3] and -coverPoint[4] <= -labelPoint[4])
+          assert(coverPoint[3] + backing.width >= labelPoint[3] + idleLabel.width)
+          assert(-coverPoint[4] + backing.height >= -labelPoint[4] + idleLabel.height)
         end
-        assert(idleLabel, "idle footer needs the pirate invitation")
-        opaqueAbove(backing, idleLabel)
-        local coverPoint, labelPoint = backing.points.TOPLEFT, idleLabel.points.TOPLEFT
-        assert(coverPoint[3] <= labelPoint[3] and -coverPoint[4] <= -labelPoint[4])
-        assert(coverPoint[3] + backing.width >= labelPoint[3] + idleLabel.width)
-        assert(-coverPoint[4] + backing.height >= -labelPoint[4] + idleLabel.height)
+        eq(button.sealed, true)
       end
-      eq(button.sealed, true)
     end
   end)
 
@@ -420,18 +435,8 @@ return function(test, H, loadAddon)
         local top = rectangle(rows[-1]).top
         local bottom = rectangle(rows[ns.Art.SpinRows + 1]).bottom
         assert(top < 0 and bottom > carrier.height)
-        covers(backgrounds, top, bottom, carrier.width, x)
-        covers(idleBackgrounds, top, bottom, carrier.width, x)
-        for _, backing in ipairs({ backgrounds, idleBackgrounds }) do
-          eq(#backing, 3)
-          for piece = 2, #backing do
-            local above, below = backing[piece - 1], backing[piece]
-            eq(above.bottom, below.top)
-            eq(above.uv[1], below.uv[1])
-            eq(above.uv[2], below.uv[2])
-            eq(above.uv[4], below.uv[3])
-          end
-        end
+        eq(#backgrounds, 0)
+        eq(#idleBackgrounds, 0)
         reference[reelIndex] = reference[reelIndex] or rows
         for row = -1, ns.Art.SpinRows + 1 do
           local texture = assert(rows[row], "missing continuous native row")
@@ -459,35 +464,31 @@ return function(test, H, loadAddon)
     end
   end)
 
-  test("prebuilt strip backing covers every viewport throughout motion and settle", function()
+  test("mode backgrounds fill every well without moving or shrinking during spins", function()
     local ns = loadAddon()
     ns.Config.Initialize(nil)
     ns.Machine.Initialize()
-    ns.Machine.SetPresentation("preview")
-    local geometry = {}
-    for index = 1, 12 do
-      local slot = H.nativeSlots[index]
-      local lanes = {}
-      for lane = 1, index <= 4 and 1 or 3 do
-        local _, backgrounds = strip(slot.button, ns.Art.Pitch, (lane - 1) * ns.Art.LanePitch)
-        lanes[lane] = backgrounds
+    for _, compact in ipairs({ false, true }) do
+      ns.Config.SetCompactMode(compact)
+      ns.Machine.ApplyPosition()
+      ns.Machine.SetPresentation("live")
+      local wellCovers = H.reelCovers(compact)
+      local alphaCount, textureWrites, widgetCount = #H.alphaWrites, H.textureWrites, #H.widgets
+      ns.Machine.Spin()
+      for _ = 0, 180 do
+        for _, slot in ipairs(wellCovers) do
+          local well = slot.container.parent.parent
+          local coverRect = H.frameRect(slot.button.children[1], ns.Machine.GetFrame())
+          for key, value in pairs(H.frameRect(well, ns.Machine.GetFrame())) do
+            eq(coverRect[key], value)
+          end
+        end
+        H.advance(1 / 120)
       end
-      geometry[index] = { carrier = slot.container.parent, lanes = lanes }
+      eq(ns.Machine.GetFrame().scripts.OnUpdate, nil)
+      eq(#H.alphaWrites, alphaCount)
+      eq(H.textureWrites, textureWrites)
+      eq(#H.widgets, widgetCount)
     end
-    local alphaCount, textureWrites, widgetCount = #H.alphaWrites, H.textureWrites, #H.widgets
-    ns.Machine.Spin()
-    for _ = 0, 180 do
-      for _, entry in ipairs(geometry) do
-        local offset = entry.carrier.points.TOPLEFT[4]
-        local x = -entry.carrier.points.TOPLEFT[3]
-        local lane = x / ns.Art.LanePitch + 1
-        covers(entry.lanes[lane], offset, offset + entry.carrier.parent.height, entry.carrier.width, x)
-      end
-      H.advance(1 / 120)
-    end
-    eq(ns.Machine.GetFrame().scripts.OnUpdate, nil)
-    eq(#H.alphaWrites, alphaCount)
-    eq(H.textureWrites, textureWrites)
-    eq(#H.widgets, widgetCount)
   end)
 end

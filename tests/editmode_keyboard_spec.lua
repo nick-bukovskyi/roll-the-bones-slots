@@ -60,7 +60,7 @@ return function(test, H, loadAddon)
         ns = login(saved)
         position(ns, 99.25, -39.75)
         eq(saved.extra, "keep")
-        eq(saved.schemaVersion, 2)
+        eq(saved.schemaVersion, 3)
       end
     end
   end)

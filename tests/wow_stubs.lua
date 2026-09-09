@@ -34,6 +34,7 @@ function H.install()
   H.playerCombat = false
   H.shift = false
   H.auraSlotCount, H.hookCount = 0, 0
+  H.fontFile, H.fontSize, H.fontFlags, H.fontWrites = "Fonts\\FRIZQT__.TTF", 12, "", 0
   local methods = {}
   local function groupDuration(group)
     local orders, lastOrder = {}, 0
@@ -264,7 +265,9 @@ function H.install()
   function methods:CreateFontString(name, layer, template)
     check(self)
     assert(name == nil and layer == "OVERLAY" and type(template) == "string")
-    return object("FontString", self, template)
+    local label = object("FontString", self, template)
+    label.fontFile, label.fontSize, label.fontFlags = H.fontFile, H.fontSize, H.fontFlags
+    return label
   end
   function methods:SetText(text)
     check(self)
@@ -321,7 +324,7 @@ function H.install()
         H.eq(select("#", ...), 0)
         assert(type(text) == "string")
         assert(type(isSelected) == "function" and type(onSelect) == "function")
-        assert(type(data) == "string")
+        assert(type(data) == "string" or type(data) == "boolean")
         dropdown.options[#dropdown.options + 1] = {
           label = text,
           isSelected = isSelected,
@@ -404,6 +407,25 @@ function H.install()
     check(self)
     assert(value == "LEFT" or value == "CENTER" or value == "RIGHT")
     self.justify = value
+  end
+  function methods:SetJustifyV(value)
+    check(self)
+    H.eq(self.kind, "FontString")
+    assert(value == "TOP" or value == "MIDDLE" or value == "BOTTOM")
+    self.justifyV = value
+  end
+  function methods:GetFont()
+    check(self)
+    H.eq(self.kind, "FontString")
+    return self.fontFile, self.fontSize, self.fontFlags
+  end
+  function methods:SetFont(file, size, flags)
+    check(self)
+    H.eq(self.kind, "FontString")
+    assert(type(file) == "string" and type(size) == "number" and size > 0 and type(flags) == "string")
+    self.fontFile, self.fontSize, self.fontFlags = file, size, flags
+    H.fontWrites = H.fontWrites + 1
+    return true
   end
   function methods:SetFrameStrata(value)
     check(self)
@@ -1026,9 +1048,71 @@ function H.button(text)
   error("button missing: " .. text)
 end
 
+function H.checkbox(text)
+  for _, widget in ipairs(H.widgets) do
+    if widget.kind == "FontString" and rawget(widget, "text") == text and widget.parent.kind == "CheckButton" then
+      return widget.parent
+    end
+  end
+  error("checkbox missing: " .. text)
+end
+
+function H.dropdown(label)
+  for _, frame in ipairs(H.frames) do
+    local point = frame.points.LEFT
+    if frame.kind == "DropdownButton" and point and rawget(point[1], "text") == label then
+      return frame
+    end
+  end
+  error("dropdown missing: " .. label)
+end
+
+-- Resolve authored construction metadata, including sealed test objects, without client calls
+function H.frameRect(widget, root)
+  local anchors = {
+    TOPLEFT = { 0, 0 },
+    TOP = { 0.5, 0 },
+    TOPRIGHT = { 1, 0 },
+    LEFT = { 0, 0.5 },
+    CENTER = { 0.5, 0.5 },
+    RIGHT = { 1, 0.5 },
+    BOTTOMLEFT = { 0, 1 },
+    BOTTOM = { 0.5, 1 },
+    BOTTOMRIGHT = { 1, 1 },
+  }
+  local function scale(region)
+    if region == root then
+      return 1
+    end
+    return region.scale * scale(region.parent)
+  end
+  local function rect(region)
+    if region == root then
+      return { x = 0, y = 0, width = region.width, height = region.height }
+    end
+    local allPoints = rawget(region, "allPoints")
+    if allPoints then
+      return rect(allPoints)
+    end
+    local point = assert(region.pointOrder[1], "unanchored artwork")
+    local binding = region.points[point]
+    local relative = rect(binding[1])
+    local source, target = anchors[point], anchors[binding[2]]
+    local factor = scale(region)
+    local width, height = region.width * factor, region.height * factor
+    return {
+      x = relative.x + target[1] * relative.width + binding[3] * factor - source[1] * width,
+      y = relative.y + target[2] * relative.height - binding[4] * factor - source[2] * height,
+      width = width,
+      height = height,
+    }
+  end
+  return rect(widget)
+end
+
 function H.cabinet()
   for _, frame in ipairs(H.frames) do
-    if frame.width == 400 and frame.height == 246 then
+    if frame.parent == UIParent and frame.width == 400 then
       return frame
     end
   end
@@ -1043,6 +1127,32 @@ function H.containers()
     end
   end
   return containers
+end
+
+function H.nativeCabinetFile(container)
+  for _, slot in ipairs(H.nativeSlots) do
+    if slot.container == container then
+      for _, child in ipairs(slot.button.children) do
+        local file = rawget(child, "texture")
+        if file and file:match("cabinet[^\\]*%.tga$") then
+          return file:match("([^\\]+)$")
+        end
+      end
+    end
+  end
+end
+
+function H.reelCovers(compact)
+  local found = {}
+  for _, slot in ipairs(H.nativeSlots) do
+    if slot.key == "footer" and slot.button.width < 400 then
+      if H.nativeCabinetFile(slot.container) == (compact and "cabinet-compact.tga" or "cabinet.tga") then
+        found[#found + 1] = slot
+      end
+    end
+  end
+  H.eq(#found, 3)
+  return found
 end
 
 function H.symbolInfo(texture)

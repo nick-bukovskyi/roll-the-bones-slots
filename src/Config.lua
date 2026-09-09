@@ -4,7 +4,7 @@ local _, ns = ...
 local Config = {}
 ns.Config = Config
 
-local SCHEMA_VERSION = 2
+local SCHEMA_VERSION = 3
 local MIN_SCALE, MAX_SCALE = 0.1, 1.8
 local DEFAULTS = {
   scale = 1,
@@ -12,12 +12,17 @@ local DEFAULTS = {
   y = 140,
   animationEnabled = true,
   durationBarEnabled = true,
+  compactMode = false,
   visibility = "always",
 }
 local VISIBILITY_OPTIONS = {
   { value = "always", label = "Always" },
   { value = "active", label = "When buff is active" },
   { value = "combat", label = "In combat" },
+}
+local DISPLAY_MODE_OPTIONS = {
+  { value = false, label = "Full" },
+  { value = true, label = "Compact" },
 }
 local database
 local readOnly = false
@@ -81,6 +86,10 @@ function Config.Initialize(savedRoot)
     if not IsVisibility(root.visibility) then
       root.visibility = DEFAULTS.visibility
     end
+    -- Schema 3 keeps the original layout unless the player enables compact mode
+    if issecretvalue(root.compactMode) or type(root.compactMode) ~= "boolean" then
+      root.compactMode = DEFAULTS.compactMode
+    end
     root.schemaVersion = SCHEMA_VERSION
     database = root
   end
@@ -111,6 +120,14 @@ end
 
 function Config.GetDurationBarEnabled()
   return database.durationBarEnabled
+end
+
+function Config.GetCompactMode()
+  return database.compactMode
+end
+
+function Config.GetDisplayModeOptions()
+  return DISPLAY_MODE_OPTIONS
 end
 
 function Config.GetVisibility()
@@ -158,6 +175,14 @@ function Config.SetDurationBarEnabled(value)
     return false
   end
   database.durationBarEnabled = value
+  return true
+end
+
+function Config.SetCompactMode(value)
+  if not database or readOnly or issecretvalue(value) or type(value) ~= "boolean" then
+    return false
+  end
+  database.compactMode = value
   return true
 end
 

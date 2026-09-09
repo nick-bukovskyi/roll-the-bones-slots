@@ -62,7 +62,7 @@ return function(test, H, loadAddon)
 
   test("native and preview flashes light only winning columns below the symbols", function()
     local ns = login()
-    eq(#H.nativeSlots, 24)
+    eq(#H.nativeSlots, 33)
     eq(#H.animationGroups, 4)
     for _, slot in ipairs(H.nativeSlots) do
       eq(next(slot.button.scripts), nil)
@@ -78,7 +78,8 @@ return function(test, H, loadAddon)
         local well, slot = owner.parent
         eq(clip(owner), well)
         eq(owner:GetAlpha(), 0)
-        eq(owner.allPoints, well)
+        eq(owner.points.CENTER[1], well)
+        eq(owner.points.CENTER[4], 0)
         eq(well.points.TOPLEFT[3], ({ 53, 153, 258 })[reel])
         eq(well.points.TOPLEFT[4], -39)
         for _, candidate in ipairs(H.nativeSlots) do
@@ -234,7 +235,7 @@ return function(test, H, loadAddon)
     eq(H.textureWrites, textures)
     eq(H.hookCount, hooks)
     eq(#H.timers, 0)
-    eq(#H.nativeSlots, 24)
+    eq(#H.nativeSlots, 33)
     quiet()
   end)
 
@@ -255,7 +256,7 @@ return function(test, H, loadAddon)
     for _, owner in ipairs(targets(H.animationGroups[4])) do
       owner:SetAlpha(0.8)
     end
-    local animation = H.findTemplate("UICheckButtonTemplate")
+    local animation = H.checkbox("Animate reels and wins")
     animation:SetChecked(false)
     animation.scripts.OnClick(animation)
     quiet()

@@ -33,7 +33,8 @@ between casts.
 - **Drag into place:** Position the chest through Blizzard's Edit Mode, with
   grid and nearby element snapping.
 - **Choose your size:** Scale the display from 10% to 180% using a slider or by
-  typing a percentage.
+  typing a percentage. Choose Full or Compact in Edit Mode. Compact removes
+  the title and uses smaller symbols and a thinner row for your buff details.
 - **Choose when it appears:** Keep it visible, show it only while a buff is
   active, or show it only in combat.
 - **Try the look:** Test spin previews all four results and the empty display

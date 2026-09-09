@@ -89,7 +89,9 @@ return function(test, H, loadAddon)
   local function nativeState(live, active, showBar)
     for _, slot in ipairs(H.nativeSlots) do
       local expected = live
-      if slot.button.bindings.SetDurationBar then
+      if H.nativeCabinetFile(slot.container) == "cabinet-compact.tga" or slot.container.parent == H.nativeSlots[26].container.parent then
+        expected = false
+      elseif slot.button.bindings.SetDurationBar then
         expected = live and showBar
       elseif slot == H.nativeSlots[13] then
         expected = live and active

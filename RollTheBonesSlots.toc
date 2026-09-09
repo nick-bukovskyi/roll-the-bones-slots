@@ -10,6 +10,7 @@
 
 src\Config.lua
 src\Game.lua
+src\Layouts.lua
 src\Art.lua
 src\Machine.lua
 src\EditModeSnap.lua

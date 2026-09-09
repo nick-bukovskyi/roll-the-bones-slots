@@ -72,7 +72,7 @@ return function(test, H, loadAddon)
         }
         ns.Config.Initialize(saved)
         local expected = type(visibility) == "string" and visibility ~= "invalid" and visibility or "always"
-        eq(saved.schemaVersion, 2)
+        eq(saved.schemaVersion, 3)
         eq(saved.visibility, expected)
         eq(saved.scale, 1.25)
         eq(saved.x, 80)
@@ -93,7 +93,7 @@ return function(test, H, loadAddon)
     eq(ns.Config.SetVisibility("active"), true)
     ns.Config.Reset()
     eq(ns.Config.GetVisibility(), "always")
-    local future = { schemaVersion = 3, visibility = "future choice", extra = "keep" }
+    local future = { schemaVersion = 4, visibility = "future choice", extra = "keep" }
     ns.Config.Initialize(future)
     eq(ns.Config.SetVisibility("combat"), false)
     eq(ns.Config.GetVisibility(), "always")
@@ -354,7 +354,11 @@ return function(test, H, loadAddon)
       local ns = login({ visibility = "active", durationBarEnabled = showBar })
       local idle
       for _, widget in ipairs(H.widgets) do
-        if widget.kind == "FontString" and rawget(widget, "text") == "Try yer luck, matey!" then
+        if
+          widget.kind == "FontString"
+          and rawget(widget, "text") == "Try yer luck, matey!"
+          and widget.parent == H.nativeSlots[14].container.parent
+        then
           assert(not idle, "a second idle label would bleed through native buff artwork")
           idle = widget
           local ancestor = widget
@@ -385,8 +389,8 @@ return function(test, H, loadAddon)
     local cabinet = H.nativeSlots[13]
     eq(cabinet.container.enabled, true)
     eq(cabinet.button.mouse, false)
-    eq(cabinet.button.width, ns.Art.Width)
-    eq(cabinet.button.height, ns.Art.Height)
+    eq(cabinet.button.width, ns.Layouts.Width)
+    eq(cabinet.button.height, ns.Layouts.Full.height)
     eq(cabinet.button.sealed, true)
     eq(next(cabinet.button.scripts), nil)
     for _, result in ipairs(ns.Game.Results) do

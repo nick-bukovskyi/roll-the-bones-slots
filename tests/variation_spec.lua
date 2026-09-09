@@ -47,9 +47,9 @@ return function(test, H, loadAddon)
     local moving = Carriers(ns)
     for index, carrier in ipairs(moving) do
       local variant = index == 1 and 1 or pair[index - 1]
-      local point = carrier.points.TOPLEFT
+      local point = carrier.points.CENTER
       eq(point[1], carrier.parent)
-      eq(point[2], "TOPLEFT")
+      eq(point[2], "CENTER")
       eq(point[3], -(variant - 1) * ns.Art.LanePitch)
       if settled then
         eq(point[4], 0)
@@ -125,7 +125,7 @@ return function(test, H, loadAddon)
         local target = H.pointWrites[index]
         assert(target == moving[1] or target == moving[2] or target == moving[3])
       end
-      eq(H.auraSlotCount, 24)
+      eq(H.auraSlotCount, 33)
     end)
   end)
 
@@ -165,7 +165,7 @@ return function(test, H, loadAddon)
       Cast("replacement")
       local moving = Selection(ns, { 3, 1 })
       for _, carrier in ipairs(moving) do
-        eq(carrier.points.TOPLEFT[4], ns.Art.SpinRows * ns.Art.Pitch)
+        eq(carrier.points.CENTER[4], ns.Art.SpinRows * ns.Art.Pitch)
       end
       H.advance(0.4)
       ns.Machine.StopSpin()
@@ -211,7 +211,7 @@ return function(test, H, loadAddon)
       Selection(ns, { 2, 3 }, true)
       eq(drawCount(), 4)
       selection.scripts.OnMouseDown(selection)
-      local animation = H.findTemplate("UICheckButtonTemplate")
+      local animation = H.checkbox("Animate reels and wins")
       animation:SetChecked(false)
       animation.scripts.OnClick(animation)
       H.button("Test spin").scripts.OnClick()
@@ -221,7 +221,7 @@ return function(test, H, loadAddon)
     end)
   end)
 
-  test("lane glyphs and opaque backing stay outside neighboring selected viewports", function()
+  test("symbol-only lanes stay outside neighboring selected viewports", function()
     WithDraws({}, function()
       local ns = Login()
       eq(ns.Art.LanePitch, 128)
@@ -238,20 +238,14 @@ return function(test, H, loadAddon)
         local parent, count = entry.object, 0
         for _, region in ipairs(H.reelRegions(parent)) do
           if region.kind == "Texture" then
-            local center, left, laneX = region.points.CENTER
-            if center then
-              eq(center[2], "CENTER")
-              laneX = center[3]
-              left = parent.width / 2 + laneX - region.width / 2
-              local id, rect = H.symbolInfo(region)
-              assert(id, "slot symbol must use the shared atlas")
-              eq(region.width, ns.Art.SymbolSize * rect[3] / 512)
-              eq(region.height, ns.Art.SymbolSize * rect[4] / 512)
-            else
-              eq(region.drawLayer, "BACKGROUND")
-              laneX = assert(region.points.TOPLEFT)[3]
-              left = laneX
-            end
+            local center = assert(region.points.CENTER, "only symbols belong on moving carriers")
+            eq(center[2], "CENTER")
+            local laneX = center[3]
+            local left = parent.width / 2 + laneX - region.width / 2
+            local id, rect = H.symbolInfo(region)
+            assert(id, "slot symbol must use the shared atlas")
+            eq(region.width, ns.Art.SymbolSize * rect[3] / 512)
+            eq(region.height, ns.Art.SymbolSize * rect[4] / 512)
             local lane = laneX / ns.Art.LanePitch + 1
             eq(lane, math.floor(lane))
             assert(lane >= 1 and lane <= entry.lanes)
@@ -267,7 +261,7 @@ return function(test, H, loadAddon)
             count = count + 1
           end
         end
-        eq(count, entry.lanes * (ns.Art.SpinRows + 6))
+        eq(count, entry.lanes * (ns.Art.SpinRows + 3))
       end
     end)
   end)
