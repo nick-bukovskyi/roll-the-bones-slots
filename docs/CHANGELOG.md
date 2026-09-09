@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.2.0] - 2026-09-08
+
+### Added
+
+- Choose Full or Compact in Edit Mode. Compact makes the chest about 43% shorter, with smaller, centered symbols and text, a thinner buff row, and no title. Your buff icon, name, timer, and optional duration bar stay visible.
+
+### Changed
+
+- Display scale can now go down to 10%, using either the slider or a typed percentage.
+
 ## [0.1.2] - 2026-09-05
 
 ### Fixed
