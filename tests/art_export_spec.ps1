@@ -53,13 +53,15 @@ public static class SlotArtExportFixture {
             image.Save(path, ImageFormat.Png);
         }
     }
-    public static void AssertTga(string path, int seed, int sourceHeight) {
+    public static void AssertTga(string path, int seed, int sourceHeight, int runtimeHeight = 1024) {
         byte[] data = File.ReadAllBytes(path);
         byte[] header = {0,0,2,0,0,0,0,0,0,0,0,0,0,4,0,4,32,0x28};
-        if(data.Length != 18 + 1024*1024*4) throw new Exception("Incorrect TGA length: " + path);
+        header[14] = (byte)(runtimeHeight % 256);
+        header[15] = (byte)(runtimeHeight / 256);
+        if(data.Length != 18 + 1024*runtimeHeight*4) throw new Exception("Incorrect TGA length: " + path);
         for(int index = 0; index < header.Length; index++)
             if(data[index] != header[index]) throw new Exception("Incorrect TGA header: " + path);
-        for(int y = 0; y < 1024; y++) for(int x = 0; x < 1024; x++) {
+        for(int y = 0; y < runtimeHeight; y++) for(int x = 0; x < 1024; x++) {
             uint actual = BitConverter.ToUInt32(data, 18 + 4*(y*1024 + x));
             uint expected = y < sourceHeight ? unchecked((uint)Pixel(x, y, seed).ToArgb()) : 0;
             if(actual != expected) throw new Exception("Changed RGBA pixel at " + x + "," + y + ": " + path);
@@ -127,24 +129,28 @@ function Assert-ExportCheckRejected {
 try {
     $null = New-Item -ItemType Directory -Path $publicDirectory, $artDirectory
     $cabinetSource = Join-Path $artDirectory 'cabinet.png'
+    $compactSource = Join-Path $artDirectory 'cabinet-compact.png'
     $symbolsSource = Join-Path $artDirectory 'symbols.png'
     $fillSource = Join-Path $artDirectory 'duration-fill.png'
     [SlotArtExportFixture]::WritePng($cabinetSource, 1, 1024, 630)
+    [SlotArtExportFixture]::WritePng($compactSource, 3, 1024, 360)
     [SlotArtExportFixture]::WritePng($symbolsSource, 2, 1024, 832)
     [SlotArtExportFixture]::WriteFill($fillSource)
     [SlotArtExportFixture]::WriteLogo((Join-Path $publicDirectory 'logo.png'))
     & $exportScript -ProjectRoot $fixtureRoot | Out-Null
     $cabinetOutput = Join-Path $artDirectory 'cabinet.tga'
+    $compactOutput = Join-Path $artDirectory 'cabinet-compact.tga'
     $symbolsOutput = Join-Path $artDirectory 'symbols.tga'
     $fillOutput = Join-Path $artDirectory 'duration-fill.tga'
     $logoOutput = Join-Path $publicDirectory 'logo.tga'
     $curseforgeOutput = Join-Path $publicDirectory 'curseforge-icon.png'
     [SlotArtExportFixture]::AssertTga($cabinetOutput, 1, 630)
+    [SlotArtExportFixture]::AssertTga($compactOutput, 3, 360, 512)
     [SlotArtExportFixture]::AssertTga($symbolsOutput, 2, 832)
     [SlotArtExportFixture]::AssertFill($fillOutput)
     [SlotArtExportFixture]::AssertLogoExports($logoOutput, $curseforgeOutput)
-    $checks += 4
-    if (@(Get-ChildItem -LiteralPath $artDirectory -File).Count -ne 6) {
+    $checks += 5
+    if (@(Get-ChildItem -LiteralPath $artDirectory -File).Count -ne 8) {
         throw 'Export created unexpected artwork files'
     }
     $checks++

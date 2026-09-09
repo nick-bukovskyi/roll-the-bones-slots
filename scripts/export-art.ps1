@@ -108,6 +108,7 @@ $publicDirectory = Join-Path $ProjectRoot 'public'
 $artDirectory = Join-Path $publicDirectory 'art'
 foreach ($asset in @(
     @{ Name = 'cabinet'; Width = 1024; Height = 630; RuntimeWidth = 1024; RuntimeHeight = 1024; Fit = $false },
+    @{ Name = 'cabinet-compact'; Width = 1024; Height = 360; RuntimeWidth = 1024; RuntimeHeight = 512; Fit = $false },
     @{ Name = 'symbols'; Width = 1024; Height = 832; RuntimeWidth = 1024; RuntimeHeight = 1024; Fit = $false },
     @{ Name = 'duration-fill'; Width = 1774; Height = 887; RuntimeWidth = 1024; RuntimeHeight = 128; Fit = $true }
 )) {
@@ -125,4 +126,4 @@ foreach ($export in @(
         $Check.IsPresent, $logoSourceSize, $logoSourceSize, $export.Size, $export.Size, $true)
 }
 if ($Check) { Write-Output 'Verified all artwork and logo exports match their source PNGs' }
-else { Write-Output 'Exported cabinet, symbols, duration fill, AddOns-list logo, and CurseForge icon' }
+else { Write-Output 'Exported cabinet variants, symbols, duration fill, AddOns-list logo, and CurseForge icon' }

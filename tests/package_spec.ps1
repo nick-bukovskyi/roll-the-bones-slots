@@ -107,12 +107,12 @@ try {
     $validTga[14] = 4
     $validTga[16] = 32
     $validTga[17] = 8
-    foreach ($name in @('cabinet.tga', 'symbols.tga', 'duration-fill.tga')) {
+    foreach ($name in @('cabinet.tga', 'cabinet-compact.tga', 'symbols.tga', 'duration-fill.tga')) {
         [IO.File]::WriteAllBytes((Join-Path $fixtureArtDirectory $name), $validTga)
     }
     [IO.File]::WriteAllBytes((Join-Path $fixturePublicDirectory 'logo.tga'), $validTga)
     $expectedPaths = @('RollTheBonesSlots.toc', 'LICENSE', 'docs/CHANGELOG.md', 'src/Main.lua', `
-        'public/art/cabinet.tga', 'public/art/symbols.tga', 'public/art/duration-fill.tga', 'public/logo.tga')
+        'public/art/cabinet.tga', 'public/art/cabinet-compact.tga', 'public/art/symbols.tga', 'public/art/duration-fill.tga', 'public/logo.tga')
     foreach ($interface in @('123456', '654321')) {
         Set-Content -LiteralPath $fixtureToc -Value @("## Interface: $interface", '## Version: fixture',
             $fixtureIconMetadata, 'src\Main.lua')
@@ -183,7 +183,7 @@ try {
         Remove-Item -LiteralPath Function:\Get-FileHash
     }
 
-    foreach ($name in @('cabinet.tga', 'symbols.tga', 'duration-fill.tga')) {
+    foreach ($name in @('cabinet.tga', 'cabinet-compact.tga', 'symbols.tga', 'duration-fill.tga')) {
         $assetPath = Join-Path $fixtureArtDirectory $name
         $omittedPath = Join-Path $fixtureArtDirectory "$name.omitted"
         Move-Item -LiteralPath $assetPath -Destination $omittedPath
