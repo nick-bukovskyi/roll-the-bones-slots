@@ -5,7 +5,7 @@ local Config = {}
 ns.Config = Config
 
 local SCHEMA_VERSION = 2
-local MIN_SCALE, MAX_SCALE = 0.6, 1.8
+local MIN_SCALE, MAX_SCALE = 0.1, 1.8
 local DEFAULTS = {
   scale = 1,
   x = 0,

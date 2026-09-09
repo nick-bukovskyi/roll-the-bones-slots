@@ -112,7 +112,7 @@ return function(test, H, loadAddon)
       local input = H.findTemplate("InputBoxTemplate")
       local x, y = center(frame)
       for _ = 1, 3 do
-        for _, scale in ipairs({ 0.6, 1, 1.8, 1.35 }) do
+        for _, scale in ipairs({ 0.1, 0.6, 1, 1.8, 1.35 }) do
           slider:SetValue(scale)
           local actualX, actualY = center(frame)
           near(actualX, x)
@@ -159,8 +159,10 @@ return function(test, H, loadAddon)
     eq(input:GetText(), "123")
     local x, y = center(ns.Machine.GetFrame())
     for _, entry in ipairs({
-      { "0", 0.6, "60" },
-      { "59", 0.6, "60" },
+      { "0", 0.1, "10" },
+      { "9", 0.1, "10" },
+      { "10", 0.1, "10" },
+      { "59", 0.59, "59" },
       { "181", 1.8, "180" },
       { "999", 1.8, "180" },
       { "127", 1.27, "127" },
@@ -219,7 +221,7 @@ return function(test, H, loadAddon)
     near(actualY, y)
     ns.Config.SetPosition(1e8, -1e8)
     ns.Machine.ApplyPosition()
-    for _, scale in ipairs({ 0.6, 1, 1.8 }) do
+    for _, scale in ipairs({ 0.1, 0.6, 1, 1.8 }) do
       H.findTemplate("MinimalSliderWithSteppersTemplate"):SetValue(scale)
       actualX, actualY = center(frame)
       assert(actualX + frame.width * scale / 2 <= UIParent.width + 1e-8)

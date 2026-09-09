@@ -32,7 +32,7 @@ between casts.
 
 - **Drag into place:** Position the chest through Blizzard's Edit Mode, with
   grid and nearby element snapping.
-- **Choose your size:** Scale the display from 60% to 180% using a slider or by
+- **Choose your size:** Scale the display from 10% to 180% using a slider or by
   typing a percentage.
 - **Choose when it appears:** Keep it visible, show it only while a buff is
   active, or show it only in combat.

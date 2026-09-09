@@ -36,7 +36,7 @@ return function(test, H, loadAddon)
   end
 
   test("all arrows move by native anchor units at every display and UI scale and survive reload", function()
-    for _, scale in ipairs({ 0.6, 1, 1.8 }) do
+    for _, scale in ipairs({ 0.1, 0.6, 1, 1.8 }) do
       for _, parentScale in ipairs({ 0.64, 1, 1.2 }) do
         local saved = { schemaVersion = 1, scale = scale, x = 100.25, y = -40.75, extra = "keep" }
         local ns = login(saved)

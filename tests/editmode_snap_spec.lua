@@ -146,7 +146,7 @@ return function(test, H, loadAddon)
 
   test("grid placement converts screen displacement to saved cabinet scale on both axes", function()
     WithWorld(function(Snap, world)
-      for _, scale in ipairs({ 0.6, 1, 1.8 }) do
+      for _, scale in ipairs({ 0.1, 0.6, 1, 1.8 }) do
         world.frame.scale = scale
         world.infos = {
           {

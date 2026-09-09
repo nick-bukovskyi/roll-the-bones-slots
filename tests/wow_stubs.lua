@@ -516,9 +516,9 @@ function H.install()
   function methods:Init(value, minimum, maximum, steps, formatters)
     check(self)
     H.eq(self.template, "MinimalSliderWithSteppersTemplate")
-    H.eq(minimum, 0.6)
+    H.eq(minimum, 0.1)
     H.eq(maximum, 1.8)
-    assert(math.abs(steps - 24) < 1e-9 and type(formatters) == "table")
+    assert(math.abs(steps - 34) < 1e-9 and type(formatters) == "table")
     self.value = value
   end
   function methods:SetValue(value)

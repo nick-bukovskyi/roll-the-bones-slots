@@ -88,11 +88,11 @@ return function(test, ns, harness)
 
   test("scale edits clamp to the supported bounds and reject invalid input without mutation", function()
     local root = Config.Initialize(nil)
-    eq(Config.SetScale(0.6), true)
-    eq(Config.GetScale(), 0.6)
+    eq(Config.SetScale(0.1), true)
+    eq(Config.GetScale(), 0.1)
     eq(Config.SetScale(1.8), true)
     eq(Config.GetScale(), 1.8)
-    for _, entry in ipairs({ { 0.59, 0.6 }, { 1.81, 1.8 }, { -100, 0.6 }, { 999, 1.8 } }) do
+    for _, entry in ipairs({ { 0.09, 0.1 }, { 0.59, 0.59 }, { 1.81, 1.8 }, { -100, 0.1 }, { 999, 1.8 } }) do
       eq(Config.SetScale(entry[1]), true)
       eq(root.scale, entry[2])
     end
