@@ -3,7 +3,7 @@
 ## IconTexture: Interface\AddOns\RollTheBonesSlots\public\logo.tga
 ## Notes: A small casino display for your Outlaw Roll the Bones result and remaining time
 ## Author: Sonterix
-## Version: 0.2.0
+## Version: 0.3.0
 ## SavedVariables: RollTheBonesSlotsDB
 ## RequiredDeps: Blizzard_AuraContainer
 ## X-Curse-Project-ID: 1682397

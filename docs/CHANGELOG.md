@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.3.0] - 2026-09-10
+
+### Changed
+
+- Refreshed both cabinet sizes, reel symbols, and the logo with a darker painted Outlaw style. Crimson dragon-bone dice now mark Jackpot.
+- Improved readability with a dark footer, an oxblood duration bar, pale text, and a centered cabinet title.
+- Winning columns keep a soft gold glow while the buff is active, even with animations off. Jackpot tosses spinning coins from the title row, or the top rail in Compact mode, with natural rising and falling motion.
+- Empty reels show only non-winning objects. Triple Threat and Jackpot have varied symbols above and below their winning dice.
+
 ## [0.2.0] - 2026-09-08
 
 ### Added
