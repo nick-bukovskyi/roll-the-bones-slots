@@ -1,12 +1,12 @@
 -- Authored texture placement only; native aura visibility still needs client proof
 return function(test, H, loadAddon)
   local eq = H.eq
-  local function CheckSymbol(texture, chest, nominalSize)
+  local function CheckSymbol(texture, jackpot, nominalSize)
     local id, rect = H.symbolInfo(texture)
     assert(id, "slot symbol must use the shared atlas")
-    eq(id == 5, chest)
-    eq(texture.width, nominalSize * rect[3] / 512)
-    eq(texture.height, nominalSize * rect[4] / 512)
+    eq(id == 5, jackpot)
+    eq(texture.width, nominalSize * rect[3] / 384)
+    eq(texture.height, nominalSize * rect[4] / 384)
   end
 
   local function VisibleSample(widget)
@@ -30,7 +30,7 @@ return function(test, H, loadAddon)
     return true
   end
 
-  test("exclusive chest appears only at native Jackpot centers, never ordinary strip rows", function()
+  test("exclusive Jackpot die appears only at native Jackpot centers, never ordinary strip rows", function()
     local ns = loadAddon()
     ns.Config.Initialize(nil)
     ns.Machine.Initialize()
@@ -56,10 +56,10 @@ return function(test, H, loadAddon)
         for _, texture in ipairs(H.reelRegions(button)) do
           if texture.kind == "Texture" and texture.points.CENTER then
             local row = -texture.points.CENTER[4] / ns.Art.Pitch
-            local chest = slot.filters[1214937] == true and row == 0
+            local jackpot = slot.filters[1214937] == true and row == 0
             eq(texture.points.CENTER[2], "CENTER")
-            CheckSymbol(texture, chest, ns.Art.SymbolSize)
-            if chest then
+            CheckSymbol(texture, jackpot, ns.Art.SymbolSize)
+            if jackpot then
               centers = centers + 1
             else
               ordinaryRows = ordinaryRows + 1
@@ -67,12 +67,12 @@ return function(test, H, loadAddon)
             count = count + 1
           end
         end
-        eq(count, (index <= 4 and 1 or 3) * (ns.Art.SpinRows + 3))
+        eq(count, (index <= 4 and 1 or 5) * (ns.Art.SpinRows + 3))
       end
       eq(button.sealed, true)
     end
-    eq(centers, 7)
-    eq(ordinaryRows, 4 * 7 * (ns.Art.SpinRows + 3) - 7)
+    eq(centers, 11)
+    eq(ordinaryRows, 4 * 11 * (ns.Art.SpinRows + 3) - 11)
 
     local idleRows = 0
     for _, container in ipairs(H.containers()) do
@@ -86,10 +86,87 @@ return function(test, H, loadAddon)
         end
       end
     end
-    eq(idleRows, 7 * (ns.Art.SpinRows + 3))
+    eq(idleRows, 11 * (ns.Art.SpinRows + 3))
   end)
 
-  test("preview chest is exclusive to labeled Jackpot centers and footer across every sample", function()
+  test("empty cabinet centers and visible neighboring rows contain no winning dice in either layout", function()
+    local ns = loadAddon()
+    ns.Config.Initialize(nil)
+    ns.Machine.Initialize()
+    for _, compact in ipairs({ false, true }) do
+      ns.Config.SetCompactMode(compact)
+      ns.Machine.ApplyPosition()
+      local checked = 0
+      for reel = 1, 3 do
+        local carrier = H.nativeSlots[(reel - 1) * 4 + 1].container.parent
+        for _, texture in ipairs(H.reelRegions(carrier)) do
+          local point = texture.points.CENTER
+          if point and math.abs(point[4]) <= ns.Art.Pitch then
+            local id = assert(H.symbolInfo(texture))
+            assert(id ~= 1 and id ~= 5, "empty reels must not imply a win, even at their edges")
+            if point[4] == 0 then
+              eq(id, ({ 2, 3, 4 })[reel])
+            end
+            checked = checked + 1
+          end
+        end
+      end
+      eq(checked, 11 * 3)
+    end
+  end)
+
+  test("Triple Threat and Jackpot neighbors differ across all three reels and match their previews in both layouts", function()
+    local ns = loadAddon()
+    ns.Config.Initialize(nil)
+    ns.Config.SetAnimationEnabled(false)
+    ns.Machine.Initialize()
+    ns.Machine.SetPresentation("preview")
+    local function middleLane(parent)
+      local rows = {}
+      for _, texture in ipairs(H.reelRegions(parent)) do
+        local point = texture.points.CENTER
+        if point and point[3] == 0 and math.abs(point[4]) <= ns.Art.Pitch then
+          rows[point[4] / ns.Art.Pitch] = assert(H.symbolInfo(texture))
+        end
+      end
+      return rows
+    end
+    for _, result in ipairs({ { rank = 3, spellID = 1214935, die = 1 }, { rank = 4, spellID = 1214937, die = 5 } }) do
+      ns.Machine.PreviewNext()
+      for _, compact in ipairs({ false, true }) do
+        ns.Config.SetCompactMode(compact)
+        ns.Machine.ApplyPosition()
+        local seenAbove, seenBelow = {}, {}
+        for reel = 1, 3 do
+          local slot = H.nativeSlots[(reel - 1) * 4 + result.rank]
+          eq(slot.filters[result.spellID], true)
+          local native = middleLane(slot.button)
+          eq(native[0], result.die)
+          assert(native[1] ~= native[-1], "a winning reel must have different neighbors above and below")
+          assert(not seenAbove[native[1]] and not seenBelow[native[-1]], "matching columns must not repeat the same neighbors")
+          seenAbove[native[1]], seenBelow[native[-1]] = true, true
+          for _, row in ipairs({ -1, 1 }) do
+            assert(native[row] ~= 1 and native[row] ~= 5, "only the center should show a winning die")
+          end
+          local checked = 0
+          for _, child in ipairs(slot.container.parent.children) do
+            if child.kind == "Frame" and child.shown then
+              local sample = middleLane(child)
+              if sample[0] then
+                for row = -1, 1 do
+                  eq(sample[row], native[row])
+                end
+                checked = checked + 1
+              end
+            end
+          end
+          eq(checked, 1)
+        end
+      end
+    end
+  end)
+
+  test("preview Jackpot die is exclusive to labeled Jackpot centers and footer across every sample", function()
     local ns = loadAddon()
     ns.Config.Initialize(nil)
     ns.Machine.Initialize()

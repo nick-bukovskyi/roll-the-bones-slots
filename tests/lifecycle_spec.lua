@@ -80,7 +80,7 @@ return function(test, H, loadAddon)
       if index == 1 then
         eq(point[3], 0)
       else
-        assert(point[3] == 0 or point[3] == -128 or point[3] == -256)
+        assert(point[3] == 0 or point[3] == -128 or point[3] == -256 or point[3] == -384 or point[3] == -512)
       end
       for _, sibling in ipairs(carrier.parent.children) do
         if sibling.kind == "Frame" and sibling.points.CENTER then

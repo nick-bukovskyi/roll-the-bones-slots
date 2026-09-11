@@ -7,13 +7,17 @@ local Art = {
   Pitch = 99,
   SpinRows = 12,
   LanePitch = 128,
-  VariantSymbols = { 2, 3, 4 },
+  VariantSymbols = { 2, 3, 4, 6, 7 },
 }
 ns.Art = Art
 local ART_PATH = "Interface\\AddOns\\" .. ADDON_NAME .. "\\public\\art\\"
 local FOOTER = Layouts.Footer
-local IDLE_SYMBOLS = { 2, 3, 1 }
-local ORDINARY_SYMBOL_COUNT = 4
+local IDLE_SYMBOLS = { 2, 3, 4 }
+local MATCHING_NEIGHBORS = { { 7, 2 }, { 6, 4 }, { 3, 7 } }
+local ORDINARY_SYMBOLS = { 1 }
+for _, symbol in ipairs(Art.VariantSymbols) do
+  ORDINARY_SYMBOLS[#ORDINARY_SYMBOLS + 1] = symbol
+end
 local REEL_LEVEL_OFFSET, LIGHT_LEVEL_OFFSET, SYMBOL_LEVEL_OFFSET = 4, 10, 20
 local NORMAL_FLASH = {
   { rise = 0.12, hold = 0.04, fade = 0.24, gap = 0.14, strength = 1 },
@@ -24,13 +28,15 @@ local JACKPOT_FLASH = {
   { rise = 0.10, hold = 0.05, fade = 0.22, gap = 0.13, strength = 0.90 },
   { rise = 0.12, hold = 0.16, fade = 0.38, gap = 0, strength = 1 },
 }
--- Centered crops of the original 512-pixel symbol canvases, preserving visible scale
+-- Packed cells share a 384-pixel nominal canvas for consistent display scale
 local SYMBOL_RECTS = {
-  { 0, 0, 344, 416 },
-  { 344, 0, 376, 416 },
-  { 720, 0, 304, 416 },
-  { 0, 416, 512, 416 },
-  { 512, 416, 512, 416 },
+  { 0, 0, 336, 336 },
+  { 336, 0, 336, 336 },
+  { 672, 0, 336, 336 },
+  { 0, 336, 336, 336 },
+  { 336, 336, 336, 336 },
+  { 672, 336, 336, 336 },
+  { 0, 672, 336, 336 },
 }
 
 local function Texture(parent, file, layer)
@@ -86,7 +92,7 @@ function Art.Symbol(parent, symbol, size)
   -- Authored IDs only; the native slot decides whether this artwork is visible
   local rect = SYMBOL_RECTS[symbol]
   local texture = Texture(parent, "symbols.tga")
-  texture:SetSize(size * rect[3] / 512, size * rect[4] / 512)
+  texture:SetSize(size * rect[3] / 384, size * rect[4] / 384)
   texture:SetTexCoord(rect[1] / 1024, (rect[1] + rect[3]) / 1024, rect[2] / 1024, (rect[2] + rect[4]) / 1024)
   return texture
 end
@@ -215,6 +221,9 @@ end
 function Art.ReelResult(parent, definition, index)
   parent:SetSize(Layouts.Columns[index].width, Art.ReelHeight)
   local opacity = definition and 1 or 0.22
+  local neighbors = definition and ORDINARY_SYMBOLS or Art.VariantSymbols
+  local matching = definition and definition.symbols[1] == definition.symbols[2] and definition.symbols[2] == definition.symbols[3]
+  local fixedNeighbors = matching and MATCHING_NEIGHBORS[index]
   local foreground = parent
   if definition then
     -- Native and preview symbols sit above stationary covers and win lights
@@ -229,13 +238,21 @@ function Art.ReelResult(parent, definition, index)
     if symbol == 0 then
       symbol = Art.VariantSymbols[lane]
     end
+    local ordinaryIndex = 1
+    for position, face in ipairs(neighbors) do
+      if face == symbol then
+        ordinaryIndex = position
+        break
+      end
+    end
     for offset = -1, Art.SpinRows + 1 do
       -- Lead-in rows are identical for every rank, variant and idle
       local leadIn = offset > 1
-      -- The exclusive Jackpot chest is never part of decorative or adjacent rows
-      local face = leadIn and (offset + index) % ORDINARY_SYMBOL_COUNT + 1
+      -- The exclusive Jackpot die is never part of decorative or adjacent rows
+      local face = leadIn and ORDINARY_SYMBOLS[(offset + index) % #ORDINARY_SYMBOLS + 1]
         or offset == 0 and symbol
-        or (symbol + offset + ORDINARY_SYMBOL_COUNT - 1) % ORDINARY_SYMBOL_COUNT + 1
+        or fixedNeighbors and fixedNeighbors[offset == -1 and 1 or 2]
+        or neighbors[(ordinaryIndex + offset - 1) % #neighbors + 1]
       local texture = Art.Symbol(foreground, face, Art.SymbolSize)
       texture:SetPoint("CENTER", foreground, "CENTER", x, -offset * Art.Pitch)
       texture:SetAlpha(leadIn and 1 or opacity * (offset == 0 and 1 or 0.45))

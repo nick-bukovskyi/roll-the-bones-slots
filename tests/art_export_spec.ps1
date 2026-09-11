@@ -106,7 +106,7 @@ try {
     $symbolsSource = Join-Path $artDirectory 'symbols.png'
     [SlotArtExportFixture]::WritePng($cabinetSource, 1, 1024, 630)
     [SlotArtExportFixture]::WritePng($compactSource, 3, 1024, 360)
-    [SlotArtExportFixture]::WritePng($symbolsSource, 2, 1024, 832)
+    [SlotArtExportFixture]::WritePng($symbolsSource, 2, 1024, 1024)
     [SlotArtExportFixture]::WriteLogo((Join-Path $publicDirectory 'logo.png'))
     & $exportScript -ProjectRoot $fixtureRoot | Out-Null
     $cabinetOutput = Join-Path $artDirectory 'cabinet.tga'
@@ -116,7 +116,7 @@ try {
     $curseforgeOutput = Join-Path $publicDirectory 'curseforge-icon.png'
     [SlotArtExportFixture]::AssertTga($cabinetOutput, 1, 630)
     [SlotArtExportFixture]::AssertTga($compactOutput, 3, 360, 512)
-    [SlotArtExportFixture]::AssertTga($symbolsOutput, 2, 832)
+    [SlotArtExportFixture]::AssertTga($symbolsOutput, 2, 1024)
     [SlotArtExportFixture]::AssertLogoExports($logoOutput, $curseforgeOutput)
     $checks += 4
     if (@(Get-ChildItem -LiteralPath $artDirectory -File).Count -ne 6) {
@@ -162,8 +162,8 @@ try {
     $checks++
 
     [SlotArtExportFixture]::WritePng($cabinetSource, 1, 1024, 630)
-    [SlotArtExportFixture]::WritePng($symbolsSource, 2, 1023, 832)
-    Assert-ExportCheckRejected 'wrong symbols dimensions' 'Expected a 1024x832 canonical PNG'
+    [SlotArtExportFixture]::WritePng($symbolsSource, 2, 1023, 1024)
+    Assert-ExportCheckRejected 'wrong symbols dimensions' 'Expected a 1024x1024 canonical PNG'
     $checks++
     Write-Output "$checks art export checks passed"
 } finally {

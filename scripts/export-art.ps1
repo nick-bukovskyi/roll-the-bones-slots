@@ -109,7 +109,7 @@ $artDirectory = Join-Path $publicDirectory 'art'
 foreach ($asset in @(
     @{ Name = 'cabinet'; Width = 1024; Height = 630; RuntimeWidth = 1024; RuntimeHeight = 1024; Fit = $false },
     @{ Name = 'cabinet-compact'; Width = 1024; Height = 360; RuntimeWidth = 1024; RuntimeHeight = 512; Fit = $false },
-    @{ Name = 'symbols'; Width = 1024; Height = 832; RuntimeWidth = 1024; RuntimeHeight = 1024; Fit = $false }
+    @{ Name = 'symbols'; Width = 1024; Height = 1024; RuntimeWidth = 1024; RuntimeHeight = 1024; Fit = $false }
 )) {
     [SlotTextureExport]::Export((Join-Path $artDirectory ($asset.Name + '.png')),
         (Join-Path $artDirectory ($asset.Name + '.tga')), $Check.IsPresent,

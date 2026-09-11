@@ -96,7 +96,7 @@ return function(test, H, loadAddon)
               if H.symbolInfo(texture) and point and point[4] == 0 and point[3] + carrier.points.CENTER[3] == 0 then
                 local bounds = H.frameRect(texture, frame)
                 centered(bounds, well)
-                near(bounds.height, compact and 68.25 or 91)
+                near(bounds.height, compact and 73.5 or 98)
                 assert(bounds.y >= well.y and bounds.y + bounds.height <= well.y + well.height)
                 if compact then
                   assert(bounds.x >= well.x and bounds.x + bounds.width <= well.x + well.width)

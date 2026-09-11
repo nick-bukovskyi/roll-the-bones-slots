@@ -3,11 +3,13 @@ local H = {}
 local unpackValues = table.unpack or unpack
 -- Authored expectations are independent of the add-on's atlas definitions
 local SYMBOL_RECTS = {
-  { 0, 0, 344, 416 },
-  { 344, 0, 376, 416 },
-  { 720, 0, 304, 416 },
-  { 0, 416, 512, 416 },
-  { 512, 416, 512, 416 },
+  { 0, 0, 336, 336 },
+  { 336, 0, 336, 336 },
+  { 672, 0, 336, 336 },
+  { 0, 336, 336, 336 },
+  { 336, 336, 336, 336 },
+  { 672, 336, 336, 336 },
+  { 0, 672, 336, 336 },
 }
 local secret = setmetatable({}, {
   __tostring = function()

@@ -8,7 +8,7 @@ return function(test, H, loadAddon)
       local minimum, maximum = ...
       count = count + 1
       eq(minimum, 1)
-      eq(maximum, count % 2 == 1 and 3 or 2)
+      eq(maximum, count % 2 == 1 and 5 or 4)
       local value = assert(values[count], "unexpected cosmetic random draw")
       assert(value >= minimum and value <= maximum)
       return value
@@ -79,14 +79,64 @@ return function(test, H, loadAddon)
     return assert(found, "missing lane center")
   end
 
-  test("all six cosmetic pairs preserve exact native rank dice counts without artwork writes", function()
-    WithDraws({ 1, 1, 1, 2, 2, 1, 2, 2, 3, 1, 3, 2 }, function(drawCount)
+  test("all seven reel sprites and the celebration coin are centered inside isolated atlas cells", function()
+    local ns = loadAddon()
+    local file = assert(io.open("public/art/symbols.tga", "rb"))
+    local pixels = file:read("*a")
+    file:close()
+    eq(pixels:sub(1, 3), "\0\0\2")
+    eq(pixels:byte(17), 32)
+    eq(pixels:byte(18), 40)
+    eq(pixels:byte(13) + pixels:byte(14) * 256, 1024)
+    eq(pixels:byte(15) + pixels:byte(16) * 256, 1024)
+    eq(#pixels, 18 + 1024 * 1024 * 4)
+    local parent = CreateFrame("Frame", nil, UIParent)
+    for symbol = 1, 8 do
+      local rect = { 336, 672, 336, 336 }
+      if symbol <= 7 then
+        local id
+        id, rect = H.symbolInfo(ns.Art.Symbol(parent, symbol, 112))
+        eq(id, symbol)
+      end
+      local left, top = rect[1] + rect[3], rect[2] + rect[4]
+      local right, bottom = -1, -1
+      for y = rect[2], rect[2] + rect[4] - 1 do
+        for x = rect[1], rect[1] + rect[3] - 1 do
+          if pixels:byte(18 + (y * 1024 + x) * 4 + 4) > 8 then
+            left, top = math.min(left, x), math.min(top, y)
+            right, bottom = math.max(right, x), math.max(bottom, y)
+          end
+        end
+      end
+      assert(right >= left and bottom >= top, "missing painted sprite " .. symbol)
+      assert(left >= rect[1] + 16 and top >= rect[2] + 16, "sprite needs transparent top/left gutters")
+      assert(right < rect[1] + rect[3] - 16 and bottom < rect[2] + rect[4] - 16, "sprite needs transparent bottom/right gutters")
+      assert(math.abs((left + right + 1) / 2 - (rect[1] + rect[3] / 2)) <= 1, "painted sprite is off-center horizontally")
+      assert(math.abs((top + bottom + 1) / 2 - (rect[2] + rect[4] / 2)) <= 1, "painted sprite is off-center vertically")
+    end
+  end)
+
+  test("all twenty cosmetic pairs preserve exact native rank dice counts without artwork writes", function()
+    local draws = {}
+    for first = 1, 5 do
+      for second = 1, 4 do
+        draws[#draws + 1] = first
+        draws[#draws + 1] = second
+      end
+    end
+    WithDraws(draws, function(drawCount)
       local ns = Login()
-      eq(table.concat(ns.Art.VariantSymbols, ","), "2,3,4")
+      eq(table.concat(ns.Art.VariantSymbols, ","), "2,3,4,6,7")
       Selection(ns, { 1, 2 }, true)
       eq(drawCount(), 0)
       local alpha, writes, widgets, points = #H.alphaWrites, H.textureWrites, #H.widgets, #H.pointWrites
-      local cases = { { 1, 2 }, { 1, 3 }, { 2, 1 }, { 2, 3 }, { 3, 1 }, { 3, 2 } }
+      local cases = {
+        { 1, 2 }, { 1, 3 }, { 1, 4 }, { 1, 5 },
+        { 2, 1 }, { 2, 3 }, { 2, 4 }, { 2, 5 },
+        { 3, 1 }, { 3, 2 }, { 3, 4 }, { 3, 5 },
+        { 4, 1 }, { 4, 2 }, { 4, 3 }, { 4, 5 },
+        { 5, 1 }, { 5, 2 }, { 5, 3 }, { 5, 4 },
+      }
       for attempt, pair in ipairs(cases) do
         Cast("pair" .. attempt)
         Selection(ns, pair)
@@ -97,18 +147,18 @@ return function(test, H, loadAddon)
           { 5, 5, 5 },
         }
         for rank = 1, 4 do
-          local dice, chests = 0, 0
+          local ordinaryDice, jackpotDice = 0, 0
           for reel = 1, 3 do
             local variant = reel == 1 and 1 or pair[reel - 1]
             local slot = H.nativeSlots[(reel - 1) * 4 + rank]
             eq(slot.button.sealed, true)
             local symbol = CenterSymbol(slot.button, (variant - 1) * ns.Art.LanePitch)
             eq(symbol, expected[rank][reel])
-            dice = dice + (symbol == 1 and 1 or 0)
-            chests = chests + (symbol == 5 and 1 or 0)
+            ordinaryDice = ordinaryDice + (symbol == 1 and 1 or 0)
+            jackpotDice = jackpotDice + (symbol == 5 and 1 or 0)
           end
-          eq(dice, rank == 4 and 0 or rank)
-          eq(chests, rank == 4 and 3 or 0)
+          eq(ordinaryDice, rank == 4 and 0 or rank)
+          eq(jackpotDice, rank == 4 and 3 or 0)
         end
         H.advance(0.8)
         H.fire("SPELLS_CHANGED")
@@ -229,10 +279,10 @@ return function(test, H, loadAddon)
       local parents = {}
       for index = 1, 12 do
         local slot = H.nativeSlots[index]
-        parents[#parents + 1] = { object = slot.button, lanes = index <= 4 and 1 or 3 }
+        parents[#parents + 1] = { object = slot.button, lanes = index <= 4 and 1 or 5 }
       end
       for index, carrier in ipairs(Carriers(ns)) do
-        parents[#parents + 1] = { object = carrier, lanes = index == 1 and 1 or 3 }
+        parents[#parents + 1] = { object = carrier, lanes = index == 1 and 1 or 5 }
       end
       for _, entry in ipairs(parents) do
         local parent, count = entry.object, 0
@@ -244,8 +294,8 @@ return function(test, H, loadAddon)
             local left = parent.width / 2 + laneX - region.width / 2
             local id, rect = H.symbolInfo(region)
             assert(id, "slot symbol must use the shared atlas")
-            eq(region.width, ns.Art.SymbolSize * rect[3] / 512)
-            eq(region.height, ns.Art.SymbolSize * rect[4] / 512)
+            eq(region.width, ns.Art.SymbolSize * rect[3] / 384)
+            eq(region.height, ns.Art.SymbolSize * rect[4] / 384)
             local lane = laneX / ns.Art.LanePitch + 1
             eq(lane, math.floor(lane))
             assert(lane >= 1 and lane <= entry.lanes)

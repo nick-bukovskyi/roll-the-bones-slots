@@ -9,7 +9,7 @@ local OUTLAW_SPEC_ID = 260
 local ROLL_THE_BONES = 1214909
 
 -- Authored artwork definitions, not a model of the player's active result
--- Symbol IDs are dice, coin, crossed swords, rum bottle, and Jackpot chest
+-- Symbol IDs are ivory die, anchor, wheel, rum, Jackpot dragon-bone die, boot, and goblin
 -- Zero marks a non-winning position filled by a cosmetic variant
 Game.Results = {
   { spellID = 1214933, label = "One of a Kind", symbols = { 1, 0, 0 } },

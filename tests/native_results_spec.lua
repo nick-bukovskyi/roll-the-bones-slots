@@ -428,7 +428,7 @@ return function(test, H, loadAddon)
       eq(rawget(slot.container, "clipsChildren") or false, false)
       eq(rawget(carrier, "clipsChildren") or false, false)
       eq(carrier.parent.clipsChildren, true)
-      for lane = 1, reelIndex == 1 and 1 or 3 do
+      for lane = 1, reelIndex == 1 and 1 or 5 do
         local x = (lane - 1) * ns.Art.LanePitch
         local rows, backgrounds = strip(button, ns.Art.Pitch, x)
         local idleRows, idleBackgrounds = strip(carrier, ns.Art.Pitch, x)
@@ -441,10 +441,10 @@ return function(test, H, loadAddon)
         for row = -1, ns.Art.SpinRows + 1 do
           local texture = assert(rows[row], "missing continuous native row")
           local idle = assert(idleRows[row], "missing continuous idle row")
-          -- Cropped atlas regions retain the original pixels-per-UI-unit ratio
+          -- Cropped atlas regions retain the shared nominal display scale
           local uv = texture.texCoords
-          eq(texture.width / (uv[2] - uv[1]), ns.Art.SymbolSize * 2)
-          eq(texture.height / (uv[4] - uv[3]), ns.Art.SymbolSize * 2)
+          eq(texture.width / (uv[2] - uv[1]), ns.Art.SymbolSize * 1024 / 384)
+          eq(texture.height / (uv[4] - uv[3]), ns.Art.SymbolSize * 1024 / 384)
           if row > -1 then
             eq(texture.points.CENTER[4] - rows[row - 1].points.CENTER[4], -ns.Art.Pitch)
           end
