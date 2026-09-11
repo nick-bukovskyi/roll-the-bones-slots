@@ -10,21 +10,23 @@ between casts.
 
 ### Read your roll at a glance
 
-- **Recognizable results:** Dice show One of a Kind, Double Trouble, and Triple
-  Threat. Three treasure chests mark Jackpot.
+- **Recognizable results:** Ivory dice show One of a Kind, Double Trouble, and
+  Triple Threat. Three crimson dragon-bone dice mark Jackpot.
 - **Buff details together:** See your current buff's icon, name, and countdown
   below the reels. Hover that row outside combat to read its tooltip.
-- **Optional duration bar:** A gold bar drains as your buff runs out. Keep the
+- **Optional duration bar:** An oxblood bar drains as your buff runs out. Keep the
   name and timer visible even with the bar turned off.
 
 ### Give each cast some character
 
 - **Spinning reels:** Cast Roll the Bones from your usual action bar and enjoy a
   short cosmetic spin when the game allows it.
-- **Winning lights:** Winning reels pulse behind their symbols, with an extra
-  flash for Jackpot.
-- **Pirate details:** Coins, cutlasses, and rum bottles mix up the other symbols.
-  Treasure chests are reserved for Jackpot.
+- **Winning lights:** Winning columns light up and keep a soft gold glow while
+  the buff is active, even with animations off. Jackpot celebrates with a burst
+  of goblin coins across the top of the cabinet.
+- **Outlaw details:** Anchors, ship's wheels, rum, boots, and a goblin bandit mix
+  up the other symbols, with varied colors and a smooth painted finish.
+  Crimson dragon-bone dice are reserved for Jackpot.
 - **A quieter option:** Turn off reel and win animations while keeping your buff
   display and timer.
 
@@ -51,7 +53,7 @@ between casts.
 | One of a Kind | One die and two different pirate symbols |
 | Double Trouble | Two dice and one pirate symbol |
 | Triple Threat | Three dice |
-| Jackpot | Three treasure chests |
+| Jackpot | Three crimson dragon-bone dice |
 
 Between buffs, the empty chest invites you back with **Try yer luck, matey!**
 Choose **When buff is active** to hide it between rolls.
