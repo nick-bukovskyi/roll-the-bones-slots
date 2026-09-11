@@ -111,7 +111,7 @@ return function(test, H, loadAddon)
             for _, animation in ipairs(group.animations) do
               local light = animation.target
               centered(H.frameRect(light, frame), H.frameRect(light.parent, frame))
-              eq(light.alpha, 0)
+              eq(light.alpha, 0.23)
             end
           end
           local titleCount = 0

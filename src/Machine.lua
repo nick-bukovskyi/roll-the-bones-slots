@@ -16,8 +16,8 @@ local function StopWinEffects()
   for _, effect in ipairs(effects) do
     effect.animation:Stop()
     for _, target in ipairs(effect.targets) do
-      if target.owner:GetAlpha() ~= 0 then
-        target.owner:SetAlpha(0)
+      if target.owner:GetAlpha() ~= effect.restAlpha then
+        target.owner:SetAlpha(effect.restAlpha)
       end
     end
   end

@@ -64,6 +64,20 @@ function H.install()
   end
   H._finishAnimationGroup = function(group)
     stopGroup(group, true)
+    if group.toFinalAlpha then
+      local final = {}
+      for _, animation in ipairs(group.animations) do
+        if animation.kind == "Alpha" then
+          local previous = final[animation.target]
+          if not previous or previous.order <= animation.order then
+            final[animation.target] = animation
+          end
+        end
+      end
+      for target, animation in pairs(final) do
+        target.alpha = animation.toAlpha
+      end
+    end
   end
   local function check(value)
     local current = value

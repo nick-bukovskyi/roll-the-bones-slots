@@ -8,6 +8,7 @@ local Art = {
   SpinRows = 12,
   LanePitch = 128,
   VariantSymbols = { 2, 3, 4, 6, 7 },
+  WinRestAlpha = 0.23,
 }
 ns.Art = Art
 local ART_PATH = "Interface\\AddOns\\" .. ADDON_NAME .. "\\public\\art\\"
@@ -19,15 +20,6 @@ for _, symbol in ipairs(Art.VariantSymbols) do
   ORDINARY_SYMBOLS[#ORDINARY_SYMBOLS + 1] = symbol
 end
 local REEL_LEVEL_OFFSET, LIGHT_LEVEL_OFFSET, SYMBOL_LEVEL_OFFSET = 4, 10, 20
-local NORMAL_FLASH = {
-  { rise = 0.12, hold = 0.04, fade = 0.24, gap = 0.14, strength = 1 },
-  { rise = 0.12, hold = 0.04, fade = 0.26, gap = 0, strength = 1 },
-}
-local JACKPOT_FLASH = {
-  { rise = 0.10, hold = 0.05, fade = 0.20, gap = 0.10, strength = 0.75 },
-  { rise = 0.10, hold = 0.05, fade = 0.22, gap = 0.13, strength = 0.90 },
-  { rise = 0.12, hold = 0.16, fade = 0.38, gap = 0, strength = 1 },
-}
 -- Packed cells share a 384-pixel nominal canvas for consistent display scale
 local SYMBOL_RECTS = {
   { 0, 0, 336, 336 },
@@ -131,11 +123,11 @@ function Art.WinResult(parent, definition, reelIndex)
   local width = Layouts.Columns[reelIndex].width
   parent:SetSize(width, Art.ReelHeight)
   local halfHeight = Art.ReelHeight / 2
-  local edge = CreateColor(0.47, 0.24, 0.02, 0.42)
-  local center = CreateColor(1, 0.92, 0.65, 1)
+  local edge = CreateColor(0.40, 0.24, 0.05, 0.05)
+  local center = CreateColor(1, 0.90, 0.58, 1)
   local target = CreateFrame("Frame", nil, parent)
   target:SetAllPoints(parent)
-  target:SetAlpha(definition.symbols[1] == 5 and 0.88 or 0.58)
+  target:SetAlpha(1)
 
   local top = target:CreateTexture(nil, "ARTWORK")
   top:SetPoint("TOPLEFT", target, "TOPLEFT", 0, 0)
@@ -173,20 +165,11 @@ local function WinAnimation(parent, targets, definition, startDelay)
   local group = parent:CreateAnimationGroup()
   group:SetLooping("NONE")
   group:SetToFinalAlpha(true)
-  local order = 1
-  local schedule = definition.symbols[1] == 5 and JACKPOT_FLASH or NORMAL_FLASH
-  for pulseIndex, pulse in ipairs(schedule) do
-    AddAlphaPhase(group, targets, 0, pulse.strength, pulse.rise, order, "IN_OUT", pulseIndex == 1 and startDelay or nil)
-    order = order + 1
-    AddAlphaPhase(group, targets, pulse.strength, pulse.strength, pulse.hold, order)
-    order = order + 1
-    AddAlphaPhase(group, targets, pulse.strength, 0, pulse.fade, order, "IN_OUT")
-    order = order + 1
-    if pulse.gap > 0 then
-      AddAlphaPhase(group, targets, 0, 0, pulse.gap, order)
-      order = order + 1
-    end
-  end
+  local jackpot = definition.symbols[1] == 5
+  local peak = jackpot and 0.70 or 0.62
+  AddAlphaPhase(group, targets, 0, 0, startDelay, 1)
+  AddAlphaPhase(group, targets, 0, peak, jackpot and 0.30 or 0.22, 2, "IN_OUT")
+  AddAlphaPhase(group, targets, peak, Art.WinRestAlpha, jackpot and 0.80 or 0.48, 3, "IN_OUT")
   return group
 end
 
@@ -201,7 +184,7 @@ function Art.WinEffects(parent, definitions, startDelay, wells)
         owner:SetSize(Layouts.Columns[reelIndex].width, Art.ReelHeight)
         owner:SetPoint("CENTER", well, "CENTER", 0, 0)
         owner:SetFrameLevel(well:GetFrameLevel() + LIGHT_LEVEL_OFFSET)
-        owner:SetAlpha(0)
+        owner:SetAlpha(Art.WinRestAlpha)
         local preview = CreateFrame("Frame", nil, owner)
         preview:SetPoint("TOPLEFT", owner, "TOPLEFT", 0, 0)
         Art.WinResult(preview, definition, reelIndex)
@@ -212,6 +195,7 @@ function Art.WinEffects(parent, definitions, startDelay, wells)
     effects[index] = {
       targets = targets,
       animation = WinAnimation(parent, targets, definition, startDelay),
+      restAlpha = Art.WinRestAlpha,
     }
   end
   return effects

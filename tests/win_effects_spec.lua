@@ -39,11 +39,11 @@ return function(test, H, loadAddon)
     error("missing light preview")
   end
   local function quiet()
-    for _, group in ipairs(H.animationGroups) do
+    for index, group in ipairs(H.animationGroups) do
       eq(group.playing, false)
       eq(group.parent:GetAlpha(), 1)
       for _, owner in ipairs(targets(group)) do
-        eq(owner:GetAlpha(), 0)
+        eq(owner:GetAlpha(), 0.23)
       end
     end
   end
@@ -60,7 +60,7 @@ return function(test, H, loadAddon)
     assert(math.abs(actual - expected) < 1e-9, "unexpected animation duration")
   end
 
-  test("native and preview flashes light only winning columns below the symbols", function()
+  test("native and preview glows persist only behind winning columns below the symbols", function()
     local ns = login()
     eq(#H.nativeSlots, 33)
     eq(#H.animationGroups, 4)
@@ -70,14 +70,15 @@ return function(test, H, loadAddon)
       eq(rawget(slot, "templateNames"), nil)
       eq(slot.button.sealed, true)
     end
-    for rank, group in ipairs(H.animationGroups) do
+    for rank = 1, 4 do
+      local group = H.animationGroups[rank]
       eq(group.parent, ns.Machine.GetFrame())
       local owners = targets(group)
       eq(#owners, rank == 4 and 3 or rank)
       for reel, owner in ipairs(owners) do
         local well, slot = owner.parent
         eq(clip(owner), well)
-        eq(owner:GetAlpha(), 0)
+        eq(owner:GetAlpha(), 0.23)
         eq(owner.points.CENTER[1], well)
         eq(owner.points.CENTER[4], 0)
         eq(well.points.TOPLEFT[3], ({ 37, 148, 260 })[reel])
@@ -106,7 +107,7 @@ return function(test, H, loadAddon)
           eq(light.width, reel == 1 and 104 or 103)
           eq(light.height, 153)
           eq(light.allPoints, artwork)
-          near(light.alpha, rank == 4 and 0.88 or 0.58)
+          near(light.alpha, 1)
           eq(#light.children, 2)
           for _, texture in ipairs(light.children) do
             eq(rawget(texture, "texture"), nil)
@@ -157,9 +158,10 @@ return function(test, H, loadAddon)
     end
   end)
 
-  test("normal and Jackpot pulse schedules begin at landing and finish transparent", function()
+  test("winning columns bloom once at landing and settle into a steady highlight", function()
     login()
-    for rank, group in ipairs(H.animationGroups) do
+    for rank = 1, 4 do
+      local group = H.animationGroups[rank]
       for _, owner in ipairs(targets(group)) do
         local duration, rises, holds, order = 0, {}, {}, 0
         local finalAlpha
@@ -167,7 +169,12 @@ return function(test, H, loadAddon)
           if animation.target == owner then
             order = order + 1
             eq(animation.order, order)
-            near(animation.startDelay, order == 1 and 1.5 or 0)
+            near(animation.startDelay, 0)
+            if order == 1 then
+              near(animation.duration, 1.5)
+              eq(animation.fromAlpha, 0)
+              eq(animation.toAlpha, 0)
+            end
             duration = duration + animation.startDelay + animation.duration
             finalAlpha = animation.toAlpha
             if animation.toAlpha > animation.fromAlpha then
@@ -177,14 +184,10 @@ return function(test, H, loadAddon)
             end
           end
         end
-        eq(#rises, rank == 4 and 3 or 2)
-        eq(#holds, #rises)
-        near(duration, rank == 4 and 3.11 or 2.46)
-        eq(finalAlpha, 0)
-        if rank == 4 then
-          assert(rises[1].toAlpha < rises[2].toAlpha and rises[2].toAlpha < rises[3].toAlpha)
-          assert(holds[3].duration > holds[1].duration and holds[3].duration > holds[2].duration)
-        end
+        eq(#rises, 1)
+        eq(#holds, 0)
+        near(duration, rank == 4 and 2.6 or 2.2)
+        eq(finalAlpha, 0.23)
       end
     end
   end)
@@ -222,7 +225,7 @@ return function(test, H, loadAddon)
     cast("reroll")
     for rank, group in ipairs(H.animationGroups) do
       eq(group.playCalls, 2)
-      near(group.finishAt, H.clock + (rank == 4 and 3.11 or 2.46))
+      near(group.finishAt, H.clock + (rank == 4 and 2.6 or 2.2))
     end
     H.advance(3.2)
     quiet()
