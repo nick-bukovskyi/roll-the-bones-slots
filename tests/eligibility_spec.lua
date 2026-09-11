@@ -109,7 +109,7 @@ return function(test, H, loadAddon)
       eq(x, 19)
       eq(y, -35)
       eq(saved.schemaVersion, 3)
-      eq(H.auraSlotCount, 33)
+      eq(H.auraSlotCount, 49)
     end
   end)
 
@@ -124,7 +124,7 @@ return function(test, H, loadAddon)
       H[case.field] = original
       H.fire("SPELLS_CHANGED")
       eq(ns.Machine.GetFrame():IsVisible(), true)
-      eq(H.auraSlotCount, 33)
+      eq(H.auraSlotCount, 49)
     end
   end)
 

@@ -43,7 +43,11 @@ return function(test, H, loadAddon)
       eq(group.playing, false)
       eq(group.parent:GetAlpha(), 1)
       for _, owner in ipairs(targets(group)) do
-        eq(owner:GetAlpha(), 0.23)
+        eq(owner:GetAlpha(), index <= 4 and 0.23 or 0)
+        if index == 5 and owner.points.CENTER then
+          eq(owner.parent.scripts.OnUpdate, nil)
+          eq(owner.points.CENTER[4], 0)
+        end
       end
     end
   end
@@ -62,8 +66,8 @@ return function(test, H, loadAddon)
 
   test("native and preview glows persist only behind winning columns below the symbols", function()
     local ns = login()
-    eq(#H.nativeSlots, 33)
-    eq(#H.animationGroups, 4)
+    eq(#H.nativeSlots, 49)
+    eq(#H.animationGroups, 5)
     for _, slot in ipairs(H.nativeSlots) do
       eq(next(slot.button.scripts), nil)
       eq(rawget(slot.button, "animationGroups"), nil)
@@ -192,6 +196,201 @@ return function(test, H, loadAddon)
     end
   end)
 
+  test("Jackpot coins launch across the title or compact top rail through native-only result filters", function()
+    local ns = login()
+    local group = H.animationGroups[5]
+    local owners = targets(group)
+    eq(#owners, 16)
+    assert(group.scripts.OnPlay and group.scripts.OnStop and group.scripts.OnFinished)
+    for _, compact in ipairs({ false, true }) do
+      ns.Config.SetCompactMode(compact)
+      ns.Machine.ApplyPosition()
+      local coins, banners, minimumX, maximumX, seenX = 0, 0, math.huge, -math.huge, {}
+      for _, owner in ipairs(owners) do
+        eq(clip(owner), nil)
+        eq(owner:GetAlpha(), 0)
+        local slot
+        for _, candidate in ipairs(H.nativeSlots) do
+          if candidate.container.parent == owner then
+            assert(not slot)
+            slot = candidate
+          end
+        end
+        assert(slot)
+        eq(slot.button.sealed, true)
+        eq(slot.button.mouse, false)
+        eq(slot.filters[1214937], true)
+        local count = 0
+        for _ in pairs(slot.filters) do
+          count = count + 1
+        end
+        eq(count, 1)
+        local artwork = slot.button.children[1]
+        if artwork.kind == "Texture" then
+          coins = coins + 1
+          eq(H.symbolInfo(artwork), nil)
+          local uv = artwork.texCoords
+          eq(uv[1] * 1024, 336)
+          eq(uv[2] * 1024, 672)
+          eq(uv[3] * 1024, 672)
+          eq(uv[4] * 1024, 1008)
+          local rect = H.frameRect(owner, ns.Machine.GetFrame())
+          local cx, cy = rect.x + rect.width / 2, rect.y + rect.height / 2
+          near(cy, compact and 11 or 20)
+          assert(not seenX[cx], "coins should launch from distinct places across the title")
+          seenX[cx] = true
+          minimumX, maximumX = math.min(minimumX, cx), math.max(maximumX, cx)
+          local rotation
+          for _, animation in ipairs(group.animations) do
+            if animation.target == owner then
+              eq(animation.kind, "Rotation")
+              rotation = animation
+            end
+          end
+          assert(rotation)
+          eq(rotation.order, 3)
+          eq(rotation.smoothing, "NONE")
+          assert(rotation.degrees ~= 0)
+        else
+          banners = banners + 1
+          eq(artwork.kind, "FontString")
+          eq(artwork.text, "JACKPOT")
+          local rect = H.frameRect(owner, ns.Machine.GetFrame())
+          near(rect.x + rect.width / 2, 200)
+          assert(rect.y + rect.height < 0, "Jackpot label belongs above the whole board")
+        end
+      end
+      eq(coins, 15)
+      eq(banners, 1)
+      assert(minimumX <= 70 and maximumX >= 330, "launch points must span the title row")
+    end
+    cast("plunder")
+    near(group.finishAt, H.clock + 3.382)
+    H.advance(3.4)
+    quiet()
+  end)
+
+  test("coin flight has constant gravity, varied launches and no fade at its apex", function()
+    local ns = login()
+    local owners = targets(H.animationGroups[5])
+    for _, compact in ipairs({ false, true }) do
+      ns.Config.SetCompactMode(compact)
+      ns.Machine.ApplyPosition()
+      cast("gravity" .. tostring(compact))
+      H.advance(1.56)
+      for index = 1, 15 do
+        eq(owners[index]:GetAlpha(), 0)
+        near(owners[index].points.CENTER[4], 0)
+      end
+      H.advance(0.08)
+      local launched = 0
+      for index = 1, 15 do
+        launched = launched + (owners[index]:GetAlpha() > 0 and 1 or 0)
+      end
+      assert(launched > 0 and launched < 15, "coins should leave in a short staggered burst")
+      H.advance(0.18)
+      local samples = {}
+      for step = 1, 3 do
+        samples[step] = {}
+        for index = 1, 15 do
+          local owner = owners[index]
+          samples[step][index] = { owner.points.CENTER[3], owner.points.CENTER[4] }
+          near(owner:GetAlpha(), 1)
+        end
+        H.advance(0.1)
+      end
+      local acceleration, rises = nil, {}
+      for index = 1, 15 do
+        local a, b, c = samples[1][index], samples[2][index], samples[3][index]
+        near(c[1] - b[1], b[1] - a[1])
+        local ay = c[2] - 2 * b[2] + a[2]
+        assert(ay < 0 and b[2] > a[2], "gravity must slow an initially upward flight")
+        acceleration = acceleration or ay
+        near(ay, acceleration)
+        rises[b[2] - a[2]] = true
+      end
+      local unique = 0
+      for _ in pairs(rises) do
+        unique = unique + 1
+      end
+      assert(unique >= 10, "coins must not move as one uniform sheet")
+      H.advance(0.85)
+      local faded = 0
+      for index = 1, 15 do
+        local owner = owners[index]
+        local rect = H.frameRect(owner, ns.Machine.GetFrame())
+        local y = rect.y + rect.height / 2
+        if y <= (compact and 140 or 246) then
+          near(owner:GetAlpha(), 1)
+        end
+        faded = faded + (owner:GetAlpha() < 1 and 1 or 0)
+        assert(owner.points.CENTER[4] < 0, "coins must fall below their launch row")
+      end
+      assert(faded > 0, "coins should fade as they leave below the cabinet")
+      H.advance(0.45)
+      quiet()
+    end
+  end)
+
+  test("coin positions are independent of frame rate and restart cleanly", function()
+    local ns = login()
+    local owners = targets(H.animationGroups[5])
+    local expected = {}
+    for run, delta in ipairs({ 1 / 30, 1 / 144, 2.5 }) do
+      cast("frame-rate" .. run)
+      local remaining = 2.5
+      while remaining > 1e-10 do
+        local step = math.min(delta, remaining)
+        H.advance(step)
+        remaining = remaining - step
+      end
+      for index = 1, 15 do
+        local point = owners[index].points.CENTER
+        if run == 1 then
+          expected[index] = { point[3], point[4] }
+        else
+          near(point[3], expected[index][1])
+          near(point[4], expected[index][2])
+        end
+      end
+      ns.Machine.StopSpin()
+      quiet()
+    end
+  end)
+
+  test("animations-off preserves only the selected steady preview glow and keeps coins hidden", function()
+    local ns = login()
+    ns.Config.SetAnimationEnabled(false)
+    ns.Machine.SetPresentation("preview")
+    for _, expected in ipairs({ 3, 4, 5, 1, 2 }) do
+      ns.Machine.PreviewNext()
+      for index, group in ipairs(H.animationGroups) do
+        eq(group.playCalls, 0)
+        for _, owner in ipairs(targets(group)) do
+          local shown = preview(owner).shown
+          eq(shown, (index <= 4 and index or 4) == expected)
+          eq(owner:GetAlpha(), index <= 4 and 0.23 or 0)
+        end
+      end
+      eq(ns.Machine.GetFrame().scripts.OnUpdate, nil)
+    end
+    ns.Config.SetAnimationEnabled(true)
+    ns.Machine.PreviewNext() -- Triple Threat
+    eq(H.animationGroups[3].playing, true)
+    eq(H.animationGroups[5].playing, false)
+    ns.Machine.PreviewNext() -- Jackpot
+    eq(H.animationGroups[4].playing, true)
+    eq(H.animationGroups[5].playing, true)
+    H.advance(0.4)
+    ns.Machine.PreviewNext() -- Empty
+    quiet()
+    for _, owner in ipairs(targets(H.animationGroups[5])) do
+      eq(preview(owner).shown, false)
+    end
+    ns.Machine.SetPresentation("live")
+    quiet()
+  end)
+
   test("each readable Roll starts all native timelines once without result or refresh detection", function()
     local ns = login()
     quiet()
@@ -225,20 +424,20 @@ return function(test, H, loadAddon)
     cast("reroll")
     for rank, group in ipairs(H.animationGroups) do
       eq(group.playCalls, 2)
-      near(group.finishAt, H.clock + (rank == 4 and 2.6 or 2.2))
+      near(group.finishAt, H.clock + ({ 2.2, 2.2, 2.2, 2.6, 3.382 })[rank])
     end
-    H.advance(3.2)
+    H.advance(3.4)
     quiet()
     local widgets, textures, hooks = #H.widgets, H.textureWrites, H.hookCount
     for index = 1, 20 do
       cast("repeat" .. index)
-      H.advance(3.2)
+      H.advance(3.4)
     end
     eq(#H.widgets, widgets)
     eq(H.textureWrites, textures)
     eq(H.hookCount, hooks)
     eq(#H.timers, 0)
-    eq(#H.nativeSlots, 33)
+    eq(#H.nativeSlots, 49)
     quiet()
   end)
 

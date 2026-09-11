@@ -355,7 +355,7 @@ return function(test, H, loadAddon)
       end
       checked[key] = true
     end
-    eq(#H.nativeSlots, 33)
+    eq(#H.nativeSlots, 49)
     for _, compact in ipairs({ false, true }) do
       ns.Config.SetCompactMode(compact)
       ns.Machine.ApplyPosition()

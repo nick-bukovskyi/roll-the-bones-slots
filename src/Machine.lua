@@ -91,8 +91,8 @@ function Machine.Spin()
     return
   end
   -- Start every live timeline without inspecting which native rank is visible
-  for index, effect in ipairs(effects) do
-    if presentation ~= "preview" or index == previewIndex then
+  for _, effect in ipairs(effects) do
+    if presentation ~= "preview" or effect.resultIndex == previewIndex then
       effect.animation:Play()
     end
   end
@@ -131,6 +131,7 @@ function Machine.ApplyPosition()
       ns.Art.LayoutWell(reel.well, frame, index, layout)
       reel.carrier:SetScale(layout.reels.symbolScale)
     end
+    ns.Art.LayoutWinEffects(effects, frame, layout)
     Machine.StopSpin()
   end
   local scale = ns.Config.GetScale()
@@ -173,8 +174,12 @@ local function SetSampleShown(index, shown)
   for _, mode in ipairs(modes) do
     mode.footer.samples[index]:SetShown(shown and mode.layout == layout)
   end
-  for _, target in ipairs(effects[index].targets) do
-    target.preview:SetShown(shown)
+  for _, effect in ipairs(effects) do
+    if effect.resultIndex == index then
+      for _, target in ipairs(effect.targets) do
+        target.preview:SetShown(shown)
+      end
+    end
   end
   for _, reel in ipairs(reels) do
     reel.samples[index]:SetShown(shown)
@@ -344,14 +349,24 @@ function Machine.Initialize()
   end
   modes[1] = CreateMode(ns.Layouts.Full)
   effects = ns.Art.WinEffects(frame, ns.Game.Results, LAST_STOP, wells)
-  for index, effect in ipairs(effects) do
+  for _, effect in ipairs(effects) do
     for _, target in ipairs(effect.targets) do
-      displays[#displays + 1] = ns.Game.CreateWinDisplay(target.owner, ns.Game.Results[index], target.reelIndex, ns.Art.WinResult)
+      if not effect.emitter then
+        displays[#displays + 1] = ns.Game.CreateWinDisplay(target.owner, ns.Game.Results[effect.resultIndex], target.initialize)
+      end
     end
   end
   modes[2] = CreateMode(ns.Layouts.Compact)
   for _, mode in ipairs(modes) do
     CreateReelCovers(mode)
+  end
+  -- Append the board-wide celebration after the existing native layouts
+  for _, effect in ipairs(effects) do
+    if effect.emitter then
+      for _, target in ipairs(effect.targets) do
+        displays[#displays + 1] = ns.Game.CreateWinDisplay(target.owner, ns.Game.Results[effect.resultIndex], target.initialize)
+      end
+    end
   end
   frame:SetScript("OnHide", Machine.StopSpin)
   Machine.ApplyPosition()

@@ -130,6 +130,12 @@ return function(test, H, loadAddon)
       Selection(ns, { 1, 2 }, true)
       eq(drawCount(), 0)
       local alpha, writes, widgets, points = #H.alphaWrites, H.textureWrites, #H.widgets, #H.pointWrites
+      local coins = {}
+      for _, animation in ipairs(H.animationGroups[5].animations) do
+        if animation.kind == "Rotation" then
+          coins[animation.target] = true
+        end
+      end
       local cases = {
         { 1, 2 }, { 1, 3 }, { 1, 4 }, { 1, 5 },
         { 2, 1 }, { 2, 3 }, { 2, 4 }, { 2, 5 },
@@ -167,15 +173,17 @@ return function(test, H, loadAddon)
         H.advance(0.8)
         Selection(ns, pair, true)
       end
-      eq(#H.alphaWrites, alpha)
+      for index = alpha + 1, #H.alphaWrites do
+        assert(coins[H.alphaWrites[index].object], "only ordinary coin carriers may fade during the celebration")
+      end
       eq(H.textureWrites, writes)
       eq(#H.widgets, widgets)
       local moving = Carriers(ns)
       for index = points + 1, #H.pointWrites do
         local target = H.pointWrites[index]
-        assert(target == moving[1] or target == moving[2] or target == moving[3])
+        assert(target == moving[1] or target == moving[2] or target == moving[3] or coins[target])
       end
-      eq(H.auraSlotCount, 33)
+      eq(H.auraSlotCount, 49)
     end)
   end)
 

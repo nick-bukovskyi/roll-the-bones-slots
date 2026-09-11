@@ -55,12 +55,19 @@ function H.install()
     group.playCalls = group.playCalls + 1
     group.playing = true
     group.finishAt = H.clock + groupDuration(group)
+    if group.scripts.OnPlay then
+      group.scripts.OnPlay(group)
+    end
   end
   local function stopGroup(group, finished)
+    local playing = group.playing
     if not finished then
       group.stopCalls = group.stopCalls + 1
     end
     group.playing, group.finishAt = false, nil
+    if playing and not finished and group.scripts.OnStop then
+      group.scripts.OnStop(group)
+    end
   end
   H._finishAnimationGroup = function(group)
     stopGroup(group, true)
@@ -77,6 +84,9 @@ function H.install()
       for target, animation in pairs(final) do
         target.alpha = animation.toAlpha
       end
+    end
+    if group.scripts.OnFinished then
+      group.scripts.OnFinished(group)
     end
   end
   local function check(value)
@@ -687,7 +697,7 @@ function H.install()
   function methods:CreateAnimation(kind)
     check(self)
     H.eq(self.kind, "AnimationGroup")
-    H.eq(kind, "Alpha")
+    assert(kind == "Alpha" or kind == "Rotation")
     local animation = setmetatable({ kind = kind, parent = self, order = 1, duration = 0, startDelay = 0, endDelay = 0 }, {
       __index = function(_, key)
         assert(methods[key], "unexpected animation API: " .. key)
@@ -699,7 +709,7 @@ function H.install()
   end
   function methods:SetTarget(target)
     check(self)
-    H.eq(self.kind, "Alpha")
+    assert(self.kind == "Alpha" or self.kind == "Rotation")
     assert(type(target) == "table")
     check(target)
     self.target = target
@@ -707,25 +717,25 @@ function H.install()
   end
   function methods:SetOrder(value)
     check(self)
-    H.eq(self.kind, "Alpha")
+    assert(self.kind == "Alpha" or self.kind == "Rotation")
     assert(type(value) == "number" and value >= 1 and value == math.floor(value))
     self.order = value
   end
   function methods:SetDuration(value)
     check(self)
-    H.eq(self.kind, "Alpha")
+    assert(self.kind == "Alpha" or self.kind == "Rotation")
     assert(type(value) == "number" and value >= 0)
     self.duration = value
   end
   function methods:SetStartDelay(value)
     check(self)
-    H.eq(self.kind, "Alpha")
+    assert(self.kind == "Alpha" or self.kind == "Rotation")
     assert(type(value) == "number" and value >= 0)
     self.startDelay = value
   end
   function methods:SetEndDelay(value)
     check(self)
-    H.eq(self.kind, "Alpha")
+    assert(self.kind == "Alpha" or self.kind == "Rotation")
     assert(type(value) == "number" and value >= 0)
     self.endDelay = value
   end
@@ -741,9 +751,22 @@ function H.install()
     assert(type(value) == "number" and value >= 0 and value <= 1)
     self.toAlpha = value
   end
+  function methods:SetOrigin(point, x, y)
+    check(self)
+    H.eq(self.kind, "Rotation")
+    H.eq(point, "CENTER")
+    assert(type(x) == "number" and type(y) == "number")
+    self.origin = { point, x, y }
+  end
+  function methods:SetDegrees(value)
+    check(self)
+    H.eq(self.kind, "Rotation")
+    assert(type(value) == "number")
+    self.degrees = value
+  end
   function methods:SetSmoothing(value)
     check(self)
-    H.eq(self.kind, "Alpha")
+    assert(self.kind == "Alpha" or self.kind == "Rotation")
     assert(value == "IN" or value == "OUT" or value == "IN_OUT" or value == "NONE")
     self.smoothing = value
   end
@@ -1189,6 +1212,10 @@ function H.symbolInfo(texture)
     return nil
   end
   local uv = assert(rawget(texture, "texCoords"), "symbol needs an atlas region")
+  -- Celebration coins share the atlas but are not reel symbols
+  if uv[1] * 1024 == 336 and uv[2] * 1024 == 672 and uv[3] * 1024 == 672 and uv[4] * 1024 == 1008 then
+    return nil
+  end
   for id, rect in ipairs(SYMBOL_RECTS) do
     if uv[1] * 1024 == rect[1] and uv[2] * 1024 == rect[1] + rect[3] and uv[3] * 1024 == rect[2] and uv[4] * 1024 == rect[2] + rect[4] then
       return id, rect

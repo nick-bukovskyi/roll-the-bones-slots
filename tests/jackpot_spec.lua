@@ -35,7 +35,7 @@ return function(test, H, loadAddon)
     ns.Config.Initialize(nil)
     ns.Machine.Initialize()
     local centers, ordinaryRows = 0, 0
-    eq(#H.nativeSlots, 33)
+    eq(#H.nativeSlots, 49)
     for index = 1, 13 do
       local slot = H.nativeSlots[index == 13 and 14 or index]
       local button = slot.button

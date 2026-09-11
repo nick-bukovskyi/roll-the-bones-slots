@@ -106,12 +106,14 @@ return function(test, H, loadAddon)
             end
             assert(inspected >= 5, "must inspect idle, previews, and native results")
           end
-          for _, group in ipairs(H.animationGroups) do
+          for index, group in ipairs(H.animationGroups) do
             eq(group.playing, false)
             for _, animation in ipairs(group.animations) do
               local light = animation.target
-              centered(H.frameRect(light, frame), H.frameRect(light.parent, frame))
-              eq(light.alpha, 0.23)
+              if index <= 4 then
+                centered(H.frameRect(light, frame), H.frameRect(light.parent, frame))
+              end
+              eq(light.alpha, index <= 4 and 0.23 or 0)
             end
           end
           local titleCount = 0

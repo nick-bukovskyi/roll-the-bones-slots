@@ -20,6 +20,8 @@ for _, symbol in ipairs(Art.VariantSymbols) do
   ORDINARY_SYMBOLS[#ORDINARY_SYMBOLS + 1] = symbol
 end
 local REEL_LEVEL_OFFSET, LIGHT_LEVEL_OFFSET, SYMBOL_LEVEL_OFFSET = 4, 10, 20
+-- The eighth atlas cell is celebration artwork, never a reel symbol
+local COIN_RECT = { 336, 672, 336, 336 }
 -- Packed cells share a 384-pixel nominal canvas for consistent display scale
 local SYMBOL_RECTS = {
   { 0, 0, 336, 336 },
@@ -173,8 +175,142 @@ local function WinAnimation(parent, targets, definition, startDelay)
   return group
 end
 
+local function EffectTarget(owner, initialize)
+  local preview = CreateFrame("Frame", nil, owner)
+  preview:SetPoint("TOPLEFT", owner, "TOPLEFT", 0, 0)
+  initialize(preview)
+  preview:Hide()
+  return { owner = owner, preview = preview, initialize = initialize }
+end
+
+local function CoinArtwork(parent, size)
+  parent:SetSize(size, size)
+  parent:EnableMouse(false)
+  local coin = Texture(parent, "symbols.tga")
+  coin:SetAllPoints(parent)
+  coin:SetTexCoord(
+    COIN_RECT[1] / 1024,
+    (COIN_RECT[1] + COIN_RECT[3]) / 1024,
+    COIN_RECT[2] / 1024,
+    (COIN_RECT[2] + COIN_RECT[4]) / 1024
+  )
+end
+
+local function JackpotBanner(parent)
+  parent:SetSize(288, 28)
+  parent:EnableMouse(false)
+  local label = Label(parent, "JACKPOT", "GameFontNormalLarge", 0, 0, 288, 28)
+  label:SetJustifyH("CENTER")
+  label:SetTextColor(0.98, 0.85, 0.55, 1)
+  label:SetShadowColor(0, 0, 0, 1)
+  label:SetShadowOffset(1, -1)
+end
+
+local function PlunderEffects(parent, resultIndex, startDelay)
+  local emitter = CreateFrame("Frame", nil, parent)
+  emitter:SetSize(Layouts.Width, 1)
+  emitter:SetFrameLevel(parent:GetFrameLevel() + 40)
+  emitter:EnableMouse(false)
+  local targets = {}
+  local group = parent:CreateAnimationGroup()
+  group:SetLooping("NONE")
+  group:SetToFinalAlpha(true)
+  local effect = { targets = targets, animation = group, resultIndex = resultIndex, restAlpha = 0, emitter = emitter }
+  local coins = {}
+  local flight, gravity, appear = 1.7, 640, 0.07
+  -- Prebuilt ordinary carriers move native-selected coin artwork without reading the result
+  for index = 1, 15 do
+    local size = 22 + (index - 1) % 4 * 3
+    local owner = CreateFrame("Frame", nil, emitter)
+    owner:SetSize(size, size)
+    owner:SetPoint("CENTER", emitter, "TOPLEFT", 68 + (index - 1) * 264 / 14, 0)
+    owner:SetAlpha(0)
+    owner:EnableMouse(false)
+    targets[#targets + 1] = EffectTarget(owner, function(button)
+      CoinArtwork(button, size)
+    end)
+
+    local coin = {
+      owner = owner,
+      x = 68 + (index - 1) * 264 / 14,
+      vx = (index - 8) / 7 * 50 + (index * 17 % 41 - 20),
+      vy = 245 + index * 29 % 91,
+      delay = index * 7 % 15 * 0.008,
+    }
+    coins[#coins + 1] = coin
+    local rotation = group:CreateAnimation("Rotation")
+    assert(rotation:SetTarget(owner), "Coin rotation target rejected")
+    rotation:SetOrigin("CENTER", 0, 0)
+    rotation:SetDegrees((index % 2 == 0 and 1 or -1) * (360 + index * 53 % 361))
+    rotation:SetDuration(flight)
+    rotation:SetStartDelay(coin.delay)
+    rotation:SetSmoothing("NONE")
+    rotation:SetOrder(3)
+  end
+  local banner = CreateFrame("Frame", nil, parent)
+  banner:SetSize(288, 28)
+  banner:SetPoint("BOTTOM", parent, "TOP", 0, 6)
+  banner:SetFrameLevel(emitter:GetFrameLevel() + 4)
+  banner:SetAlpha(0)
+  local bannerTarget = EffectTarget(banner, JackpotBanner)
+  targets[#targets + 1] = bannerTarget
+  local bannerTargets = { bannerTarget }
+  AddAlphaPhase(group, bannerTargets, 0, 0, startDelay, 1)
+  AddAlphaPhase(group, bannerTargets, 0, 1, appear, 2, "IN_OUT")
+  AddAlphaPhase(group, bannerTargets, 1, 0, 0.85, 3, "IN_OUT", 0.75)
+
+  local elapsed = 0
+  local function ResetCoins()
+    emitter:SetScript("OnUpdate", nil)
+    if elapsed > 0 then
+      for _, coin in ipairs(coins) do
+        coin.owner:SetAlpha(0)
+        coin.owner:SetPoint("CENTER", emitter, "TOPLEFT", coin.x, 0)
+      end
+    end
+    elapsed = 0
+  end
+  local function UpdateCoins(_, delta)
+    elapsed = elapsed + delta
+    if elapsed < 0 then
+      return
+    end
+    for _, coin in ipairs(coins) do
+      local t = elapsed - coin.delay
+      if t >= 0 and t < flight then
+        -- Sample constant acceleration directly so frame rate cannot change the arc
+        local y = coin.vy * t - gravity * t * t / 2
+        coin.owner:SetPoint("CENTER", emitter, "TOPLEFT", coin.x + coin.vx * t, y)
+        -- Coins stay solid until they fall past the cabinet, then disappear below it
+        coin.owner:SetAlpha(math.min(1, t / 0.035, math.max(0, (y - effect.fadeY + 48) / 48)))
+      else
+        coin.owner:SetAlpha(0)
+      end
+    end
+  end
+  group:SetScript("OnPlay", function()
+    ResetCoins()
+    elapsed = -startDelay - appear
+    emitter:SetScript("OnUpdate", UpdateCoins)
+  end)
+  group:SetScript("OnStop", ResetCoins)
+  group:SetScript("OnFinished", ResetCoins)
+  return effect
+end
+
+function Art.LayoutWinEffects(effects, parent, layout)
+  for _, effect in ipairs(effects) do
+    if effect.emitter then
+      local y = layout.title and (layout.title.y + layout.title.height / 2) or layout.reels.y / 2
+      effect.emitter:SetPoint("TOPLEFT", parent, "TOPLEFT", 0, -y)
+      effect.fadeY = y - layout.height
+    end
+  end
+end
+
 function Art.WinEffects(parent, definitions, startDelay, wells)
   local effects = {}
+  local jackpotIndex
   for index, definition in ipairs(definitions) do
     local targets = {}
     for reelIndex, symbol in ipairs(definition.symbols) do
@@ -185,19 +321,23 @@ function Art.WinEffects(parent, definitions, startDelay, wells)
         owner:SetPoint("CENTER", well, "CENTER", 0, 0)
         owner:SetFrameLevel(well:GetFrameLevel() + LIGHT_LEVEL_OFFSET)
         owner:SetAlpha(Art.WinRestAlpha)
-        local preview = CreateFrame("Frame", nil, owner)
-        preview:SetPoint("TOPLEFT", owner, "TOPLEFT", 0, 0)
-        Art.WinResult(preview, definition, reelIndex)
-        preview:Hide()
-        targets[#targets + 1] = { owner = owner, preview = preview, reelIndex = reelIndex }
+        targets[#targets + 1] = EffectTarget(owner, function(button)
+          Art.WinResult(button, definition, reelIndex)
+        end)
       end
     end
     effects[index] = {
       targets = targets,
       animation = WinAnimation(parent, targets, definition, startDelay),
+      resultIndex = index,
       restAlpha = Art.WinRestAlpha,
     }
+    if definition.symbols[1] == 5 then
+      jackpotIndex = index
+    end
   end
+  effects[#effects + 1] = PlunderEffects(parent, assert(jackpotIndex, "Jackpot definition is required"), startDelay)
+  Art.LayoutWinEffects(effects, parent, Layouts.Full)
   return effects
 end
 

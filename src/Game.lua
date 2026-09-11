@@ -108,14 +108,14 @@ function Game.CreateBuffDisplay(parent, initializeArtwork)
   return container
 end
 
-function Game.CreateWinDisplay(parent, definition, reelIndex, initializeWin)
+function Game.CreateWinDisplay(parent, definition, initializeWin)
   local container = CreateContainer(parent)
   container:AddAuraSlot("win", "HELPFUL", {
     candidateFilters = { includeSpellIDs = { [definition.spellID] = true } },
     initializeFrame = function(button)
       InitializeButton(button, container)
       button:EnableMouse(false)
-      initializeWin(button, definition, reelIndex)
+      initializeWin(button)
     end,
   })
   container:SetEnabled(true)
