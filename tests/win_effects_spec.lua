@@ -80,7 +80,7 @@ return function(test, H, loadAddon)
         eq(owner:GetAlpha(), 0)
         eq(owner.points.CENTER[1], well)
         eq(owner.points.CENTER[4], 0)
-        eq(well.points.TOPLEFT[3], ({ 53, 153, 258 })[reel])
+        eq(well.points.TOPLEFT[3], ({ 37, 148, 260 })[reel])
         eq(well.points.TOPLEFT[4], -39)
         for _, candidate in ipairs(H.nativeSlots) do
           if candidate.key == "win" and candidate.container.parent == owner then
@@ -103,7 +103,7 @@ return function(test, H, loadAddon)
           eq(#artwork.children, 1)
           local light = artwork.children[1]
           eq(clip(light), well)
-          eq(light.width, reel == 2 and 94 or 91)
+          eq(light.width, reel == 1 and 104 or 103)
           eq(light.height, 153)
           eq(light.allPoints, artwork)
           near(light.alpha, rank == 4 and 0.88 or 0.58)

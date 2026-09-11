@@ -53,7 +53,8 @@ function Art.Cabinet(parent, layout)
   texture:SetTexCoord(0, 1, 0, layout.textureBottom)
   if layout.title then
     local title = layout.title
-    Label(parent, "Roll the Bones", "GameFontNormalLarge", title.x, title.y, title.width, title.height)
+    local label = Label(parent, "Roll the Bones", "GameFontNormalLarge", title.x, title.y, title.width, title.height)
+    label:SetJustifyV("MIDDLE")
   end
 end
 
@@ -61,6 +62,8 @@ local function FooterLabel(parent, text, font, x, width, layout)
   local style = layout.footer
   local label = Label(parent, text, font, x, style.y + (style.height - style.textHeight) / 2, width, style.textHeight)
   label:SetJustifyV("MIDDLE")
+  label:SetShadowColor(0, 0, 0, 1)
+  label:SetShadowOffset(1, -1)
   if style.fontSizeOffset ~= 0 then
     -- Preserve Blizzard's locale-specific face and flags without modifying the shared font
     local file, size, flags = label:GetFont()
@@ -253,10 +256,11 @@ local function DurationBar(parent, layout)
 
   local track = bar:CreateTexture(nil, "BACKGROUND")
   track:SetAllPoints(bar)
-  track:SetColorTexture(0.025, 0.018, 0.008, 0.4)
-  local fill = Texture(bar, "duration-fill.tga")
+  track:SetColorTexture(0.035, 0.04, 0.047, 1)
+  local fill = bar:CreateTexture(nil, "ARTWORK")
+  fill:SetTexture("Interface\\TargetingFrame\\UI-StatusBar", "CLAMP", "CLAMP", "LINEAR")
   assert(bar:SetStatusBarTexture(fill), "Duration bar texture rejected")
-  bar:SetStatusBarColor(1, 1, 1, 1)
+  bar:SetStatusBarColor(132 / 255, 59 / 255, 51 / 255, 1)
   return bar
 end
 
@@ -299,6 +303,7 @@ function Art.Footer(parent, definition, layout)
   end
   local name = FooterLabel(foreground, "", "GameFontNormal", 80, 208, layout)
   name:SetJustifyH("LEFT")
+  name:SetTextColor(0.94, 0.91, 0.82, 1)
   local duration = FooterLabel(foreground, "", "GameFontHighlight", 288, 55, layout)
   duration:SetJustifyH("RIGHT")
   if definition then

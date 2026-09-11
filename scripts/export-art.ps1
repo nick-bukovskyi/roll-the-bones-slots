@@ -5,7 +5,7 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Drawing
-# Source PNGs are authoritative; atlases preserve pixels while the bar and logo exports fit their target sizes
+# Source PNGs are authoritative; atlases preserve pixels while logo exports fit their target sizes
 Add-Type -ReferencedAssemblies @([System.Drawing.Bitmap].Assembly.Location, [System.Drawing.Color].Assembly.Location,
     'System.Runtime', 'System.Private.Windows.GdiPlus', 'System.Private.Windows.Core') -TypeDefinition @'
 using System;
@@ -109,8 +109,7 @@ $artDirectory = Join-Path $publicDirectory 'art'
 foreach ($asset in @(
     @{ Name = 'cabinet'; Width = 1024; Height = 630; RuntimeWidth = 1024; RuntimeHeight = 1024; Fit = $false },
     @{ Name = 'cabinet-compact'; Width = 1024; Height = 360; RuntimeWidth = 1024; RuntimeHeight = 512; Fit = $false },
-    @{ Name = 'symbols'; Width = 1024; Height = 832; RuntimeWidth = 1024; RuntimeHeight = 1024; Fit = $false },
-    @{ Name = 'duration-fill'; Width = 1774; Height = 887; RuntimeWidth = 1024; RuntimeHeight = 128; Fit = $true }
+    @{ Name = 'symbols'; Width = 1024; Height = 832; RuntimeWidth = 1024; RuntimeHeight = 1024; Fit = $false }
 )) {
     [SlotTextureExport]::Export((Join-Path $artDirectory ($asset.Name + '.png')),
         (Join-Path $artDirectory ($asset.Name + '.tga')), $Check.IsPresent,
@@ -126,4 +125,4 @@ foreach ($export in @(
         $Check.IsPresent, $logoSourceSize, $logoSourceSize, $export.Size, $export.Size, $true)
 }
 if ($Check) { Write-Output 'Verified all artwork and logo exports match their source PNGs' }
-else { Write-Output 'Exported cabinet variants, symbols, duration fill, AddOns-list logo, and CurseForge icon' }
+else { Write-Output 'Exported cabinet variants, symbols, AddOns-list logo, and CurseForge icon' }

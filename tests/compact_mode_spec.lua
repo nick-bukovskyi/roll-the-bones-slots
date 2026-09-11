@@ -194,7 +194,7 @@ return function(test, H, loadAddon)
       local barRect = H.frameRect(nativeBar, frame)
       eq(barRect.y, compact and 110 or 205)
       eq(barRect.height, compact and 18 or 26)
-      eq(barRect.width, 301)
+      eq(barRect.width, 312)
       eq(nativeFooter.hitRectInsets[3], barRect.y)
       eq(nativeFooter.height - nativeFooter.hitRectInsets[3] - nativeFooter.hitRectInsets[4], barRect.height)
       for _, region in pairs(nativeFooter.bindings) do
@@ -229,7 +229,7 @@ return function(test, H, loadAddon)
             if widget.kind == "StatusBar" then
               bars = bars + 1
               eq(widget.height, 18)
-              eq(widget.width, 301)
+              eq(widget.width, 312)
             end
           end
         end

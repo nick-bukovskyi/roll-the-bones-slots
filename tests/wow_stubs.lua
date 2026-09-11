@@ -351,6 +351,19 @@ function H.install()
   function methods:SetTextColor(r, g, b, a)
     check(self)
     assert(r and g and b and a)
+    self.textColor = { r, g, b, a }
+  end
+  function methods:SetShadowColor(r, g, b, a)
+    check(self)
+    H.eq(self.kind, "FontString")
+    assert(type(r) == "number" and type(g) == "number" and type(b) == "number" and type(a) == "number")
+    self.shadowColor = { r, g, b, a }
+  end
+  function methods:SetShadowOffset(x, y)
+    check(self)
+    H.eq(self.kind, "FontString")
+    assert(type(x) == "number" and type(y) == "number")
+    self.shadowOffset = { x, y }
   end
   function methods:SetColorTexture(r, g, b, a)
     check(self)

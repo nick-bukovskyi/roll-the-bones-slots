@@ -96,6 +96,7 @@ try {
     Set-Content -LiteralPath (Join-Path $fixtureSourceDirectory 'Main.lua') -Value 'local addonName, ns = ...'
     Set-Content -LiteralPath (Join-Path $fixtureArtDirectory 'cabinet.png') -Value 'Excluded source art'
     Set-Content -LiteralPath (Join-Path $fixtureArtDirectory 'jackpot.tga') -Value 'Obsolete standalone texture'
+    Set-Content -LiteralPath (Join-Path $fixtureArtDirectory 'duration-fill.tga') -Value 'Obsolete generated bar texture'
     Set-Content -LiteralPath (Join-Path $fixtureArtDirectory 'mockup.png') -Value 'Excluded mockup'
     Set-Content -LiteralPath (Join-Path $fixtureScreenshotsDirectory 'jackpot.png') -Value 'Excluded screenshot'
     Set-Content -LiteralPath (Join-Path $fixtureTestsDirectory 'fixture.lua') -Value 'Excluded test'
@@ -107,12 +108,12 @@ try {
     $validTga[14] = 4
     $validTga[16] = 32
     $validTga[17] = 8
-    foreach ($name in @('cabinet.tga', 'cabinet-compact.tga', 'symbols.tga', 'duration-fill.tga')) {
+    foreach ($name in @('cabinet.tga', 'cabinet-compact.tga', 'symbols.tga')) {
         [IO.File]::WriteAllBytes((Join-Path $fixtureArtDirectory $name), $validTga)
     }
     [IO.File]::WriteAllBytes((Join-Path $fixturePublicDirectory 'logo.tga'), $validTga)
     $expectedPaths = @('RollTheBonesSlots.toc', 'LICENSE', 'docs/CHANGELOG.md', 'src/Main.lua', `
-        'public/art/cabinet.tga', 'public/art/cabinet-compact.tga', 'public/art/symbols.tga', 'public/art/duration-fill.tga', 'public/logo.tga')
+        'public/art/cabinet.tga', 'public/art/cabinet-compact.tga', 'public/art/symbols.tga', 'public/logo.tga')
     foreach ($interface in @('123456', '654321')) {
         Set-Content -LiteralPath $fixtureToc -Value @("## Interface: $interface", '## Version: fixture',
             $fixtureIconMetadata, 'src\Main.lua')
@@ -127,6 +128,9 @@ try {
             }
             if ($archive.GetEntry('RollTheBonesSlots/public/art/jackpot.tga')) {
                 throw 'Obsolete standalone Jackpot texture leaked into the archive'
+            }
+            if ($archive.GetEntry('RollTheBonesSlots/public/art/duration-fill.tga')) {
+                throw 'Obsolete generated bar texture leaked into the archive'
             }
             $entry = $archive.GetEntry('RollTheBonesSlots/RollTheBonesSlots.toc')
             if (-not $entry) { throw 'Packaged TOC is missing' }
@@ -183,7 +187,7 @@ try {
         Remove-Item -LiteralPath Function:\Get-FileHash
     }
 
-    foreach ($name in @('cabinet.tga', 'cabinet-compact.tga', 'symbols.tga', 'duration-fill.tga')) {
+    foreach ($name in @('cabinet.tga', 'cabinet-compact.tga', 'symbols.tga')) {
         $assetPath = Join-Path $fixtureArtDirectory $name
         $omittedPath = Join-Path $fixtureArtDirectory "$name.omitted"
         Move-Item -LiteralPath $assetPath -Destination $omittedPath

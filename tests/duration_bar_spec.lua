@@ -114,14 +114,14 @@ return function(test, H, loadAddon)
       assert(region.parent.frameLevel > bar.frameLevel, "footer labels must stay above the native fill")
     end
     assert(bar.frameLevel > footer.button.frameLevel, "bar must stay above footer backing")
-    eq(bar.fill.texture, "Interface\\AddOns\\RollTheBonesSlots\\public\\art\\duration-fill.tga")
+    eq(bar.fill.texture, "Interface\\TargetingFrame\\UI-StatusBar")
     local backing = footer.button.children[1]
     eq(bar.points.TOPLEFT[3], backing.points.TOPLEFT[3])
     eq(bar.points.TOPLEFT[4], backing.points.TOPLEFT[4])
     eq(bar.width, backing.width)
     eq(bar.height, backing.height)
-    eq(bar.points.TOPLEFT[3], 50)
-    eq(bar.width, 301)
+    eq(bar.points.TOPLEFT[3], 44)
+    eq(bar.width, 312)
     local icon = footer.button.bindings.SetIcon
     local iconPoint, barPoint = icon.points.TOPLEFT, bar.points.TOPLEFT
     assert(iconPoint[3] > barPoint[3] and iconPoint[3] + icon.width < barPoint[3] + bar.width)
@@ -130,6 +130,40 @@ return function(test, H, loadAddon)
     eq(icon.height, 16)
     eq(#H.timers, 0)
     eq(H.cabinet().scripts.OnUpdate, nil)
+  end)
+
+  test("native and preview bars have opaque tracks and readable labels across the full footer", function()
+    login()
+    local function luminance(color)
+      local function linear(value)
+        return value <= 0.04045 and value / 12.92 or ((value + 0.055) / 1.055) ^ 2.4
+      end
+      return 0.2126 * linear(color[1]) + 0.7152 * linear(color[2]) + 0.0722 * linear(color[3])
+    end
+    local count = 0
+    for _, bar in ipairs(H.frames) do
+      if bar.kind == "StatusBar" then
+        local track = bar.children[1]
+        eq(track.allPoints, bar)
+        eq(track.color[4], 1)
+        eq(bar.statusBarColor[4], 1)
+        eq(bar.fill.texture, "Interface\\TargetingFrame\\UI-StatusBar")
+        -- The entire inset stays covered even when the remaining fill reaches zero
+        local footer = H.nativeSlots[bar.height == 18 and 26 or 14].button
+        local backing = footer.children[1]
+        eq(bar.points.TOPLEFT[3], backing.points.TOPLEFT[3])
+        eq(bar.width, backing.width)
+        local name = footer.bindings.SetSpellName
+        local color = name.textColor
+        eq(color[4], 1)
+        -- Tint is the brightest the native texture can become
+        assert((luminance(color) + 0.05) / (luminance(bar.statusBarColor) + 0.05) >= 4.5)
+        assert((luminance(color) + 0.05) / (luminance(track.color) + 0.05) >= 4.5)
+        eq(name.shadowColor[4], 1)
+        count = count + 1
+      end
+    end
+    eq(count, 10)
   end)
 
   test("duration toggle changes only bar visibility and persists independently of reduced motion", function()
