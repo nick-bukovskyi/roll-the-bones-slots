@@ -39,7 +39,7 @@ return function(test, H, loadAddon)
             backgrounds[#backgrounds + 1] = background
           end
           eq(rawget(region, "alpha") or 1, 1)
-          eq(region.texture, "Interface\\AddOns\\RollTheBonesSlots\\public\\art\\cabinet.tga")
+          error("moving strips must not carry cabinet backgrounds")
         elseif region.points.CENTER and region.points.CENTER[3] == laneX then
           local row = -region.points.CENTER[4] / pitch
           eq(row, math.floor(row))
@@ -68,14 +68,15 @@ return function(test, H, loadAddon)
             widget.kind == "Texture"
             and widget.width == ns.Layouts.Width
             and widget.height == ns.Layouts.Full.height
-            and rawget(widget, "texture") == "Interface\\AddOns\\RollTheBonesSlots\\public\\art\\cabinet.tga"
+            and rawget(widget, "texture")
+            and widget.texture:match("cabinet[^\\]*%.tga$")
           then
             cabinets[#cabinets + 1] = widget.parent
           elseif rawget(widget, "clipsChildren") then
             wells[#wells + 1] = widget
           end
         end
-        eq(#cabinets, 2)
+        eq(#cabinets, 10)
         eq(#wells, 3)
         local function checkLayers()
           for _, well in ipairs(wells) do
@@ -324,45 +325,23 @@ return function(test, H, loadAddon)
     local ns = loadAddon()
     ns.Config.Initialize(nil)
     ns.Machine.Initialize()
-    local atlases = {}
-    local checked = {}
     local function opaqueAbove(texture, empty)
       assert(texture.parent.frameLevel > empty.parent.frameLevel, "native background must cover empty artwork on a strictly higher frame")
       eq(rawget(texture, "alpha") or 1, 1)
-      local name = texture.texture:match("([^\\]+)$")
-      if not atlases[name] then
-        local file = assert(io.open("public/art/" .. name, "rb"))
-        atlases[name] = file:read("*a")
-        file:close()
+      eq(rawget(texture, "texture"), nil)
+      for component = 1, 4 do
+        eq(texture.color[component], ns.Appearance.InsetColor[component])
       end
-      local pixels = atlases[name]
-      -- The shipped exporter writes uncompressed BGRA pixels in top-left order
-      eq(pixels:sub(1, 3), "\0\0\2")
-      eq(pixels:byte(17), 32)
-      eq(pixels:byte(18), 40)
-      local width = pixels:byte(13) + pixels:byte(14) * 256
-      local height = pixels:byte(15) + pixels:byte(16) * 256
-      local uv = texture.texCoords
-      local key = name .. table.concat(uv, ",")
-      if checked[key] then
-        return
-      end
-      -- Include neighboring texels used by linear filtering at crop edges
-      for y = math.max(0, math.floor(uv[3] * height) - 1), math.min(height - 1, math.ceil(uv[4] * height)) do
-        for x = math.max(0, math.floor(uv[1] * width) - 1), math.min(width - 1, math.ceil(uv[2] * width)) do
-          eq(pixels:byte(18 + (y * width + x) * 4 + 4), 255)
-        end
-      end
-      checked[key] = true
+      eq(texture.color[4], 1)
     end
-    eq(#H.nativeSlots, 49)
+    eq(#H.nativeSlots, 57)
     for _, compact in ipairs({ false, true }) do
       ns.Config.SetCompactMode(compact)
       ns.Machine.ApplyPosition()
       ns.Machine.SetPresentation("live")
       local wellCovers = H.reelCovers(compact)
       for index = 1, 4 do
-        local slot = index <= 3 and wellCovers[index] or H.nativeSlots[compact and 26 or 14]
+        local slot = index <= 3 and wellCovers[index] or H.footerSlot(compact)
         -- Inspect test construction metadata only, never invoke a sealed native object
         local button = slot.button
         if index <= 3 then

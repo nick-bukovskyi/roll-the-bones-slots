@@ -11,6 +11,7 @@ ignore:
   - public/logo.png
   - public/curseforge-icon.png
   - "public/art/*.png"
+  - public/art/cabinet-sources
   - public/screenshots
   - tests
   - scripts

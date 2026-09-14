@@ -183,7 +183,7 @@ return function(test, H, loadAddon)
         local target = H.pointWrites[index]
         assert(target == moving[1] or target == moving[2] or target == moving[3] or coins[target])
       end
-      eq(H.auraSlotCount, 49)
+      eq(H.auraSlotCount, 57)
     end)
   end)
 

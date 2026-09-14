@@ -191,8 +191,8 @@ return function(test, H, loadAddon)
     local dropdown = selectCabinet()
     for _, compact in ipairs({ false, true }) do
       choose(dropdown, compact)
-      local nativeFooter = H.nativeSlots[compact and 26 or 14].button
-      local nativeBar = H.nativeSlots[compact and 27 or 15].button.bindings.SetDurationBar
+      local nativeFooter = H.footerSlot(compact).button
+      local nativeBar = H.durationSlot(compact).button.bindings.SetDurationBar
       local barRect = H.frameRect(nativeBar, frame)
       eq(barRect.y, compact and 110 or 205)
       eq(barRect.height, compact and 18 or 26)
@@ -262,8 +262,8 @@ return function(test, H, loadAddon)
         H.findTemplate("MinimalSliderWithSteppersTemplate"):SetValue(scale)
         for _, compact in ipairs({ false, true }) do
           choose(dropdown, compact)
-          local footer = H.nativeSlots[compact and 26 or 14]
-          local bar = H.nativeSlots[compact and 27 or 15].button.bindings.SetDurationBar
+          local footer = H.footerSlot(compact)
+          local bar = H.durationSlot(compact).button.bindings.SetDurationBar
           local barRect = H.frameRect(bar, ns.Machine.GetFrame())
           local count = 0
           local function inspect(parent)
@@ -308,12 +308,12 @@ return function(test, H, loadAddon)
           eq(slot.container.shown, expected)
         end
       end
-      eq(H.nativeSlots[13].container.enabled, false)
-      eq(H.nativeSlots[14].container.enabled, false)
-      eq(H.nativeSlots[15].container.enabled, false)
-      eq(H.nativeSlots[25].container.enabled, visibility == "active")
-      eq(H.nativeSlots[26].container.enabled, visibility ~= "combat")
-      eq(H.nativeSlots[27].container.enabled, visibility ~= "combat")
+      eq(H.cabinetSlot(false).container.enabled, false)
+      eq(H.footerSlot(false).container.enabled, false)
+      eq(H.durationSlot(false).container.enabled, false)
+      eq(H.cabinetSlot(true).container.enabled, visibility == "active")
+      eq(H.footerSlot(true).container.enabled, visibility ~= "combat")
+      eq(H.durationSlot(true).container.enabled, visibility ~= "combat")
       coversEnabled(visibility ~= "combat")
       local dropdown = selectCabinet()
       coversEnabled(false)
@@ -328,12 +328,12 @@ return function(test, H, loadAddon)
         eq(frame.height, 140)
         eq(dropdown.menuOpen, false)
         H.exitEditMode()
-        eq(H.nativeSlots[13].container.enabled, false)
-        eq(H.nativeSlots[14].container.enabled, false)
-        eq(H.nativeSlots[15].container.enabled, false)
-        eq(H.nativeSlots[25].container.enabled, visibility == "active")
-        eq(H.nativeSlots[26].container.enabled, true)
-        eq(H.nativeSlots[27].container.enabled, true)
+        eq(H.cabinetSlot(false).container.enabled, false)
+        eq(H.footerSlot(false).container.enabled, false)
+        eq(H.durationSlot(false).container.enabled, false)
+        eq(H.cabinetSlot(true).container.enabled, visibility == "active")
+        eq(H.footerSlot(true).container.enabled, true)
+        eq(H.durationSlot(true).container.enabled, true)
         coversEnabled(true)
         H.fire("UNIT_SPELLCAST_SUCCEEDED", "player", "compact-roll-" .. cycle, 1214909)
         H.advance(3.2)

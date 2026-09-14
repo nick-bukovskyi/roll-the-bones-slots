@@ -3,7 +3,7 @@ local _, ns = ...
 local Settings = {}
 ns.Settings = Settings
 
-local callbacks, panel, scaleSlider, scaleInput, animation, durationBar, displayMode, visibility, eyeButton
+local callbacks, panel, scaleSlider, scaleInput, animation, durationBar, displayMode, cabinetStyle, visibility, eyeButton
 local refreshing, cancelInput = false, false
 -- Match Blizzard's Edit Mode rows, section gaps and action-button spacing
 local PANEL_WIDTH, PANEL_PADDING, TITLE_TOP = 386, 20, 15
@@ -181,7 +181,7 @@ local function CreatePanel()
   local title = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
   title:SetPoint("TOP", panel, "TOP", 0, -TITLE_TOP)
   title:SetText("Roll the Bones Slots")
-  local contentHeight = 5 * ROW_HEIGHT + 4 * ROW_GAP + SECTION_GAP + 2 * BUTTON_HEIGHT + ROW_GAP
+  local contentHeight = 6 * ROW_HEIGHT + 5 * ROW_GAP + SECTION_GAP + 2 * BUTTON_HEIGHT + ROW_GAP
   panel:SetSize(PANEL_WIDTH, TITLE_TOP + title:GetHeight() + SECTION_GAP + contentHeight + PANEL_PADDING)
   local close = CreateFrame("Button", nil, panel, "UIPanelCloseButton")
   close:SetPoint("TOPRIGHT", panel, "TOPRIGHT", 0, 0)
@@ -249,8 +249,29 @@ local function CreatePanel()
     end
   end)
 
+  local cabinetLabel = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightMedium")
+  cabinetLabel:SetPoint("TOPLEFT", modeLabel, "BOTTOMLEFT", 0, -ROW_GAP)
+  cabinetLabel:SetSize(LABEL_WIDTH, ROW_HEIGHT)
+  cabinetLabel:SetJustifyH("LEFT")
+  cabinetLabel:SetText("Cabinet style")
+  cabinetStyle = CreateFrame("DropdownButton", nil, panel, "WowStyle1DropdownTemplate")
+  cabinetStyle:SetPoint("LEFT", cabinetLabel, "RIGHT", CONTROL_GAP, 0)
+  cabinetStyle:SetSize(PANEL_WIDTH - 2 * PANEL_PADDING - LABEL_WIDTH - CONTROL_GAP, 25)
+  cabinetStyle:SetupMenu(function(_, root)
+    for _, option in ipairs(ns.Appearance.Cabinets) do
+      root:CreateRadio(option.label, function(value)
+        return ns.Config.GetCabinetStyle() == value
+      end, function(value)
+        if CanEdit() and ns.Config.SetCabinetStyle(value) then
+          callbacks.changed()
+        end
+        Settings.Refresh()
+      end, option.value)
+    end
+  end)
+
   animation = CreateFrame("CheckButton", nil, panel, "UICheckButtonTemplate")
-  animation:SetPoint("TOPLEFT", modeLabel, "BOTTOMLEFT", -CONTROL_GAP, -ROW_GAP)
+  animation:SetPoint("TOPLEFT", cabinetLabel, "BOTTOMLEFT", -CONTROL_GAP, -ROW_GAP)
   animation:SetSize(ROW_HEIGHT, ROW_HEIGHT)
   local animationLabel = animation:CreateFontString(nil, "OVERLAY", "GameFontHighlightMedium")
   animationLabel:SetPoint("LEFT", animation, "RIGHT", CONTROL_GAP, 0)
@@ -297,6 +318,7 @@ local function CreatePanel()
     cancelInput = false
     visibility:CloseMenu()
     displayMode:CloseMenu()
+    cabinetStyle:CloseMenu()
     callbacks.reset()
     Settings.Refresh()
   end)
@@ -305,6 +327,7 @@ local function CreatePanel()
     handledKeys = {}
     visibility:CloseMenu()
     displayMode:CloseMenu()
+    cabinetStyle:CloseMenu()
     HideEyeTooltip()
     cancelInput = true
     scaleInput:ClearFocus()
@@ -341,6 +364,7 @@ function Settings.Refresh()
   end
   animation:SetChecked(ns.Config.GetAnimationEnabled())
   durationBar:SetChecked(ns.Config.GetDurationBarEnabled())
+  cabinetStyle:OverrideText(ns.Appearance.GetCabinet(ns.Config.GetCabinetStyle()).label)
   for _, option in ipairs(ns.Config.GetDisplayModeOptions()) do
     if option.value == ns.Config.GetCompactMode() then
       displayMode:OverrideText(option.label)

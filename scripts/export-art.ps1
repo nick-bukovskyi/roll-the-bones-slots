@@ -5,7 +5,8 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Drawing
-# Source PNGs are authoritative; atlases preserve pixels while logo exports fit their target sizes
+# Prepared cabinet PNGs and the icon atlas preserve pixels; logos fit their target sizes.
+# Run prepare-cabinets.ps1 after changing authored cabinet sources or shared geometry.
 Add-Type -ReferencedAssemblies @([System.Drawing.Bitmap].Assembly.Location, [System.Drawing.Color].Assembly.Location,
     'System.Runtime', 'System.Private.Windows.GdiPlus', 'System.Private.Windows.Core') -TypeDefinition @'
 using System;
@@ -106,14 +107,11 @@ public static class SlotTextureExport {
 '@
 $publicDirectory = Join-Path $ProjectRoot 'public'
 $artDirectory = Join-Path $publicDirectory 'art'
-foreach ($asset in @(
-    @{ Name = 'cabinet'; Width = 1024; Height = 630; RuntimeWidth = 1024; RuntimeHeight = 1024; Fit = $false },
-    @{ Name = 'cabinet-compact'; Width = 1024; Height = 360; RuntimeWidth = 1024; RuntimeHeight = 512; Fit = $false },
-    @{ Name = 'symbols'; Width = 1024; Height = 1024; RuntimeWidth = 1024; RuntimeHeight = 1024; Fit = $false }
-)) {
+$layout = & (Join-Path $PSScriptRoot 'read-art-layout.ps1') -ProjectRoot $ProjectRoot
+foreach ($asset in $layout.assets) {
     [SlotTextureExport]::Export((Join-Path $artDirectory ($asset.Name + '.png')),
         (Join-Path $artDirectory ($asset.Name + '.tga')), $Check.IsPresent,
-        $asset.Width, $asset.Height, $asset.RuntimeWidth, $asset.RuntimeHeight, $asset.Fit)
+        $asset.Width, $asset.Height, $asset.RuntimeWidth, $asset.RuntimeHeight, $false)
 }
 $logoSource = Join-Path $publicDirectory 'logo.png'
 $logoSourceSize = 1254

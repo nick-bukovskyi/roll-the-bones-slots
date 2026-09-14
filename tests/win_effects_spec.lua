@@ -66,7 +66,7 @@ return function(test, H, loadAddon)
 
   test("native and preview glows persist only behind winning columns below the symbols", function()
     local ns = login()
-    eq(#H.nativeSlots, 49)
+    eq(#H.nativeSlots, 57)
     eq(#H.animationGroups, 5)
     for _, slot in ipairs(H.nativeSlots) do
       eq(next(slot.button.scripts), nil)
@@ -437,7 +437,7 @@ return function(test, H, loadAddon)
     eq(H.textureWrites, textures)
     eq(H.hookCount, hooks)
     eq(#H.timers, 0)
-    eq(#H.nativeSlots, 49)
+    eq(#H.nativeSlots, 57)
     quiet()
   end)
 

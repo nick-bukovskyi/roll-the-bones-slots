@@ -17,7 +17,7 @@ return function(test, H, loadAddon)
   local function samples()
     local found = {}
     for _, frame in ipairs(H.frames) do
-      if frame.kind == "Frame" and frame.parent == H.nativeSlots[14].container.parent then
+      if frame.kind == "Frame" and frame.parent == H.footerSlot(false).container.parent then
         for _, foreground in ipairs(frame.children) do
           for _, child in ipairs(foreground.children) do
             if child.kind == "FontString" and rawget(child, "text") == "26 s" then
@@ -44,16 +44,9 @@ return function(test, H, loadAddon)
   end
   local function nativeEnabled(expected)
     local containers = H.containers()
-    eq(#containers, 40)
+    eq(#containers, 48)
     for _, container in ipairs(containers) do
-      local compactFooter = container.parent == H.nativeSlots[26].container.parent
-      eq(
-        container.enabled,
-        expected
-          and not compactFooter
-          and H.nativeCabinetFile(container) ~= "cabinet-compact.tga"
-          and container ~= H.nativeSlots[13].container
-      )
+      eq(container.enabled, expected and not H.isCompactContainer(container) and H.nativeCabinetFile(container) == nil)
     end
   end
   local function carriers()
@@ -107,7 +100,7 @@ return function(test, H, loadAddon)
     eq(saved.schemaVersion, nil)
     eq(#H.frames, 1)
     H.fire("PLAYER_LOGIN")
-    eq(saved.schemaVersion, 3)
+    eq(saved.schemaVersion, 4)
     local count, hooks = #H.frames, H.hookCount
     H.fire("PLAYER_LOGIN")
     H.fire("ADDON_LOADED", "RollTheBonesSlots")
@@ -119,7 +112,7 @@ return function(test, H, loadAddon)
     eq(#H.frames, count)
     eq(H.hookCount, hooks)
     eq(hooks, 4)
-    eq(H.auraSlotCount, 49)
+    eq(H.auraSlotCount, 57)
     eq(ns.Machine.GetFrame(), H.cabinet())
     eq(H.cabinet():IsVisible(), true)
     eq(type(SlashCmdList.ROLLTHEBONESSLOTS), "function")
@@ -135,11 +128,11 @@ return function(test, H, loadAddon)
       H.fire("PLAYER_LOGIN")
       eq(ns.Machine.GetFrame():IsVisible(), true)
       eq(_G.RollTheBonesSlotsDB, saved)
-      eq(saved.schemaVersion, 3)
+      eq(saved.schemaVersion, 4)
       eq(saved.scale, 1.4)
       eq(saved.x, 42)
       eq(saved.y, -37)
-      eq(H.auraSlotCount, 49)
+      eq(H.auraSlotCount, 57)
       eq(#H.messages, 0)
     end
   end)
@@ -149,7 +142,7 @@ return function(test, H, loadAddon)
     H.loggedIn = true
     EditModeManagerFrame = nil
     H.fire("ADDON_LOADED", "RollTheBonesSlots")
-    eq(H.auraSlotCount, 49)
+    eq(H.auraSlotCount, 57)
     eq(H.hookCount, 0)
     H.fire("ADDON_LOADED", "Unrelated")
     eq(H.hookCount, 0)
@@ -290,7 +283,7 @@ return function(test, H, loadAddon)
     H.exitEditMode()
     spin("reduced-motion")
     assertSettled()
-    eq(H.auraSlotCount, 49)
+    eq(H.auraSlotCount, 57)
   end)
 
   test("Edit Mode owns the only preview and samples never coexist with native results", function()
@@ -428,7 +421,7 @@ return function(test, H, loadAddon)
       selectCabinet()
       eq(#H.frames, count)
       eq(H.hookCount, hooks)
-      eq(H.auraSlotCount, 49)
+      eq(H.auraSlotCount, 57)
     end
     H.exitEditMode()
   end)
@@ -509,7 +502,7 @@ return function(test, H, loadAddon)
   end)
 
   test("future saved schema remains read-only including during Edit Mode", function()
-    local saved = { schemaVersion = 4, scale = 1.7, x = "future", extra = "preserved" }
+    local saved = { schemaVersion = 5, scale = 1.7, x = "future", extra = "preserved" }
     local ns = login(saved)
     H.enterEditMode()
     eq(ns.Config.IsReadOnly(), true)
@@ -519,7 +512,7 @@ return function(test, H, loadAddon)
     eq(H.findTemplate("InputBoxTemplate"), nil)
     H.exitEditMode()
     nativeEnabled(true)
-    eq(saved.schemaVersion, 4)
+    eq(saved.schemaVersion, 5)
     eq(saved.scale, 1.7)
     eq(saved.x, "future")
     eq(saved.extra, "preserved")

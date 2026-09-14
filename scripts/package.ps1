@@ -27,8 +27,9 @@ $runtimePaths = @($tocLines | Where-Object {
     $_.Trim() -and -not $_.TrimStart().StartsWith('#')
 } | ForEach-Object { $_.Trim().Replace('\', '/') })
 # Textures are loaded by Lua, not listed as executable files in the TOC
-$runtimeMediaPaths = @('public/art/cabinet.tga', 'public/art/cabinet-compact.tga', 'public/art/symbols.tga',
-    $icon.Substring($iconPrefix.Length))
+$artLayout = & (Join-Path $PSScriptRoot 'read-art-layout.ps1') -ProjectRoot $projectRoot
+$runtimeMediaPaths = @($artLayout.assets | ForEach-Object { 'public/art/' + $_.name + '.tga' }) +
+    @($icon.Substring($iconPrefix.Length))
 $packagePaths = @("$addonName.toc", 'LICENSE', 'docs/CHANGELOG.md') + $runtimePaths + $runtimeMediaPaths
 if (@($packagePaths | Select-Object -Unique).Count -ne $packagePaths.Count) { throw 'Duplicate package path' }
 
@@ -69,6 +70,7 @@ foreach ($path in $runtimeMediaPaths) {
 }
 
 # Header checks cannot detect stale or changed pixels in an otherwise valid TGA
+& (Join-Path $PSScriptRoot 'prepare-cabinets.ps1') -Check
 & (Join-Path $PSScriptRoot 'export-art.ps1') -Check
 
 $outputDirectory = Join-Path $projectRoot 'dist'

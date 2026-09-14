@@ -166,13 +166,13 @@ return function(test, H, loadAddon)
 
   test("slash reset preserves newer settings on active and inactive characters", function()
     for _, spec in ipairs({ 259, 260 }) do
-      local saved = { schemaVersion = 4, scale = 1.7, x = "future", extra = "keep" }
+      local saved = { schemaVersion = 5, scale = 1.7, x = "future", extra = "keep" }
       login(saved, function()
         H.spec = spec
       end)
       command("reset")
       eq(_G.RollTheBonesSlotsDB, saved)
-      eq(saved.schemaVersion, 4)
+      eq(saved.schemaVersion, 5)
       eq(saved.scale, 1.7)
       eq(saved.x, "future")
       eq(saved.extra, "keep")

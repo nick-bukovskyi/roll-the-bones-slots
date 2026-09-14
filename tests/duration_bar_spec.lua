@@ -34,7 +34,7 @@ return function(test, H, loadAddon)
       if
         widget.kind == "StatusBar"
         and widget.parent.kind ~= "AuraButton"
-        and widget.parent.parent == H.nativeSlots[14].container.parent
+        and widget.parent.parent == H.footerSlot(false).container.parent
       then
         bars[#bars + 1] = widget
       end
@@ -80,20 +80,20 @@ return function(test, H, loadAddon)
     eq(Config.GetDurationBarEnabled(), false)
     eq(Config.Reset(), true)
     eq(saved.durationBarEnabled, true)
-    local future = { schemaVersion = 4, durationBarEnabled = "future value" }
+    local future = { schemaVersion = 5, durationBarEnabled = "future value" }
     Config.Initialize(future)
     eq(Config.GetDurationBarEnabled(), true)
     eq(Config.SetDurationBarEnabled(false), false)
     eq(Config.Reset(), false)
     eq(future.durationBarEnabled, "future value")
-    eq(future.schemaVersion, 4)
+    eq(future.schemaVersion, 5)
   end)
 
   test("native bar binds remaining duration for the same buffs below the unchanged footer labels", function()
     login()
     local slot = durationSlot()
     local bar = slot.button.bindings.SetDurationBar
-    local footer = H.nativeSlots[14]
+    local footer = H.footerSlot(false)
     for id, included in pairs(footer.filters) do
       eq(slot.filters[id], included)
     end
@@ -149,7 +149,7 @@ return function(test, H, loadAddon)
         eq(bar.statusBarColor[4], 1)
         eq(bar.fill.texture, "Interface\\TargetingFrame\\UI-StatusBar")
         -- The entire inset stays covered even when the remaining fill reaches zero
-        local footer = H.nativeSlots[bar.height == 18 and 26 or 14].button
+        local footer = H.footerSlot(bar.height == 18).button
         local backing = footer.children[1]
         eq(bar.points.TOPLEFT[3], backing.points.TOPLEFT[3])
         eq(bar.width, backing.width)
@@ -171,7 +171,7 @@ return function(test, H, loadAddon)
     local native = durationSlot().container
     eq(native.enabled, false)
     eq(native.shown, false)
-    eq(H.nativeSlots[14].container.enabled, true)
+    eq(H.footerSlot(false).container.enabled, true)
     local checkbox = selectCabinet()
     eq(checkbox:GetChecked(), false)
     for _, bar in ipairs(previewBars()) do
@@ -217,7 +217,7 @@ return function(test, H, loadAddon)
     click(checkbox, false)
     H.exitEditMode()
     eq(native.enabled, false)
-    eq(H.nativeSlots[14].container.enabled, true)
+    eq(H.footerSlot(false).container.enabled, true)
     local saved = RollTheBonesSlotsDB
     ns = login(saved)
     eq(ns.Config.GetDurationBarEnabled(), false)

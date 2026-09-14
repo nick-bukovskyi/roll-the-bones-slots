@@ -1,6 +1,8 @@
 -- Authored cabinet geometry and artwork shared by native results and editor samples
 local ADDON_NAME, ns = ...
 local Layouts = ns.Layouts
+local Icons = ns.Appearance.Icons
+local INSET = ns.Appearance.InsetColor
 local Art = {
   ReelHeight = 153,
   SymbolSize = 112,
@@ -20,18 +22,7 @@ for _, symbol in ipairs(Art.VariantSymbols) do
   ORDINARY_SYMBOLS[#ORDINARY_SYMBOLS + 1] = symbol
 end
 local REEL_LEVEL_OFFSET, LIGHT_LEVEL_OFFSET, SYMBOL_LEVEL_OFFSET = 4, 10, 20
--- The eighth atlas cell is celebration artwork, never a reel symbol
-local COIN_RECT = { 336, 672, 336, 336 }
--- Packed cells share a 384-pixel nominal canvas for consistent display scale
-local SYMBOL_RECTS = {
-  { 0, 0, 336, 336 },
-  { 336, 0, 336, 336 },
-  { 672, 0, 336, 336 },
-  { 0, 336, 336, 336 },
-  { 336, 336, 336, 336 },
-  { 672, 336, 336, 336 },
-  { 0, 672, 336, 336 },
-}
+local COIN_RECT = Icons.coin
 
 local function Texture(parent, file, layer)
   local texture = parent:CreateTexture(nil, layer or "ARTWORK")
@@ -47,14 +38,23 @@ local function Label(parent, text, font, x, y, width, height)
   return label
 end
 
-function Art.Cabinet(parent, layout)
-  local texture = Texture(parent, layout.cabinet, "BACKGROUND")
+local function InsetTexture(parent)
+  local texture = parent:CreateTexture(nil, "BACKGROUND")
+  texture:SetColorTexture(INSET[1], INSET[2], INSET[3], INSET[4])
+  return texture
+end
+
+function Art.Cabinet(parent, layout, cabinet)
+  local texture = Texture(parent, ns.Appearance.CabinetStem(cabinet, layout) .. ".tga", "BACKGROUND")
   texture:SetAllPoints(parent)
   texture:SetTexCoord(0, 1, 0, layout.textureBottom)
   if layout.title then
     local title = layout.title
     local label = Label(parent, "Roll the Bones", "GameFontNormalLarge", title.x, title.y, title.width, title.height)
     label:SetJustifyV("MIDDLE")
+    local color = cabinet.titleColor
+    label:SetTextColor(color[1], color[2], color[3], color[4])
+    label:SetShadowColor(0, 0, 0, 0)
   end
 end
 
@@ -76,18 +76,18 @@ function Art.EmptyFooter(parent, layout)
   return FooterLabel(parent, "Try yer luck, matey!", "GameFontDisable", 56, 288, layout)
 end
 
-function Art.NativeCabinet(parent, layout)
+function Art.NativeCabinet(parent, layout, cabinet)
   parent:SetSize(Layouts.Width, layout.height)
   parent:EnableMouse(false)
-  Art.Cabinet(parent, layout)
+  Art.Cabinet(parent, layout, cabinet)
 end
 
 function Art.Symbol(parent, symbol, size)
   -- Authored IDs only; the native slot decides whether this artwork is visible
-  local rect = SYMBOL_RECTS[symbol]
-  local texture = Texture(parent, "symbols.tga")
-  texture:SetSize(size * rect[3] / 384, size * rect[4] / 384)
-  texture:SetTexCoord(rect[1] / 1024, (rect[1] + rect[3]) / 1024, rect[2] / 1024, (rect[2] + rect[4]) / 1024)
+  local rect = Icons.symbols[symbol]
+  local texture = Texture(parent, Icons.file .. ".tga")
+  texture:SetSize(size * rect[3] / Icons.nominalSize, size * rect[4] / Icons.nominalSize)
+  texture:SetTexCoord(rect[1] / Icons.width, (rect[1] + rect[3]) / Icons.width, rect[2] / Icons.height, (rect[2] + rect[4]) / Icons.height)
   return texture
 end
 
@@ -95,14 +95,8 @@ function Art.NativeReelCover(button, index, layout)
   local column, reel = Layouts.Columns[index], layout.reels
   button:SetSize(column.width, reel.height)
   button:EnableMouse(false)
-  local texture = Texture(button, layout.cabinet, "BACKGROUND")
+  local texture = InsetTexture(button)
   texture:SetAllPoints(button)
-  texture:SetTexCoord(
-    column.x / Layouts.Width,
-    (column.x + column.width) / Layouts.Width,
-    reel.y / layout.height * layout.textureBottom,
-    (reel.y + reel.height) / layout.height * layout.textureBottom
-  )
 end
 
 function Art.LayoutWell(well, parent, index, layout)
@@ -186,13 +180,13 @@ end
 local function CoinArtwork(parent, size)
   parent:SetSize(size, size)
   parent:EnableMouse(false)
-  local coin = Texture(parent, "symbols.tga")
+  local coin = Texture(parent, Icons.file .. ".tga")
   coin:SetAllPoints(parent)
   coin:SetTexCoord(
-    COIN_RECT[1] / 1024,
-    (COIN_RECT[1] + COIN_RECT[3]) / 1024,
-    COIN_RECT[2] / 1024,
-    (COIN_RECT[2] + COIN_RECT[4]) / 1024
+    COIN_RECT[1] / Icons.width,
+    (COIN_RECT[1] + COIN_RECT[3]) / Icons.width,
+    COIN_RECT[2] / Icons.height,
+    (COIN_RECT[2] + COIN_RECT[4]) / Icons.height
   )
 end
 
@@ -397,7 +391,7 @@ local function DurationBar(parent, layout)
 
   local track = bar:CreateTexture(nil, "BACKGROUND")
   track:SetAllPoints(bar)
-  track:SetColorTexture(0.035, 0.04, 0.047, 1)
+  track:SetColorTexture(INSET[1], INSET[2], INSET[3], INSET[4])
   local fill = bar:CreateTexture(nil, "ARTWORK")
   fill:SetTexture("Interface\\TargetingFrame\\UI-StatusBar", "CLAMP", "CLAMP", "LINEAR")
   assert(bar:SetStatusBarTexture(fill), "Duration bar texture rejected")
@@ -416,15 +410,9 @@ end
 
 function Art.Footer(parent, definition, layout)
   parent:SetSize(Layouts.Width, layout.height)
-  local backing = Texture(parent, layout.cabinet, "BACKGROUND")
+  local backing = InsetTexture(parent)
   backing:SetPoint("TOPLEFT", parent, "TOPLEFT", FOOTER.x, -layout.footer.y)
   backing:SetSize(FOOTER.width, layout.footer.height)
-  backing:SetTexCoord(
-    FOOTER.x / Layouts.Width,
-    (FOOTER.x + FOOTER.width) / Layouts.Width,
-    layout.footer.y / layout.height * layout.textureBottom,
-    (layout.footer.y + layout.footer.height) / layout.height * layout.textureBottom
-  )
   -- Text and icon sit above the optional sibling native bar and its preview
   local foreground = CreateFrame("Frame", nil, parent)
   foreground:SetAllPoints(parent)

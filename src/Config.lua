@@ -4,7 +4,7 @@ local _, ns = ...
 local Config = {}
 ns.Config = Config
 
-local SCHEMA_VERSION = 3
+local SCHEMA_VERSION = 4
 local MIN_SCALE, MAX_SCALE = 0.1, 1.8
 local DEFAULTS = {
   scale = 1,
@@ -14,6 +14,7 @@ local DEFAULTS = {
   animationEnabled = true,
   durationBarEnabled = true,
   compactMode = false,
+  cabinetStyle = ns.Appearance.DefaultCabinet,
   visibility = "always",
 }
 local VISIBILITY_OPTIONS = {
@@ -46,6 +47,10 @@ local function IsVisibility(value)
     end
   end
   return false
+end
+
+local function IsCabinetStyle(value)
+  return not issecretvalue(value) and type(value) == "string" and ns.Appearance.GetCabinet(value) ~= nil
 end
 
 local function ApplyDefaults(root)
@@ -91,6 +96,10 @@ function Config.Initialize(savedRoot)
     if issecretvalue(root.compactMode) or type(root.compactMode) ~= "boolean" then
       root.compactMode = DEFAULTS.compactMode
     end
+    -- Schema 4 adds cabinet choice while preserving every existing preference
+    if not IsCabinetStyle(root.cabinetStyle) then
+      root.cabinetStyle = DEFAULTS.cabinetStyle
+    end
     root.schemaVersion = SCHEMA_VERSION
     database = root
   end
@@ -125,6 +134,10 @@ end
 
 function Config.GetCompactMode()
   return database.compactMode
+end
+
+function Config.GetCabinetStyle()
+  return database.cabinetStyle
 end
 
 function Config.GetDisplayModeOptions()
@@ -192,6 +205,14 @@ function Config.SetVisibility(value)
     return false
   end
   database.visibility = value
+  return true
+end
+
+function Config.SetCabinetStyle(value)
+  if not database or readOnly or not IsCabinetStyle(value) then
+    return false
+  end
+  database.cabinetStyle = value
   return true
 end
 

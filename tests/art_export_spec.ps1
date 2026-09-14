@@ -101,25 +101,34 @@ function Assert-ExportCheckRejected {
 
 try {
     $null = New-Item -ItemType Directory -Path $publicDirectory, $artDirectory
-    $cabinetSource = Join-Path $artDirectory 'cabinet.png'
-    $compactSource = Join-Path $artDirectory 'cabinet-compact.png'
+    $sourceDirectory = Join-Path $fixtureRoot 'src'
+    $null = New-Item -ItemType Directory -Path $sourceDirectory
+    foreach ($name in @('Appearance.lua', 'Layouts.lua')) {
+        Copy-Item -LiteralPath (Join-Path $projectRoot "src/$name") -Destination $sourceDirectory
+    }
+    $artLayout = & (Join-Path $projectRoot 'scripts/read-art-layout.ps1') -ProjectRoot $fixtureRoot
+    $cabinetSource = Join-Path $artDirectory ($artLayout.cabinets[0].name + '.png')
     $symbolsSource = Join-Path $artDirectory 'symbols.png'
-    [SlotArtExportFixture]::WritePng($cabinetSource, 1, 1024, 630)
-    [SlotArtExportFixture]::WritePng($compactSource, 3, 1024, 360)
-    [SlotArtExportFixture]::WritePng($symbolsSource, 2, 1024, 1024)
+    $seed = 0
+    foreach ($asset in $artLayout.assets) {
+        $seed++
+        [SlotArtExportFixture]::WritePng((Join-Path $artDirectory ($asset.name + '.png')), $seed, $asset.width, $asset.height)
+    }
+    $symbolsSeed = $seed
     [SlotArtExportFixture]::WriteLogo((Join-Path $publicDirectory 'logo.png'))
     & $exportScript -ProjectRoot $fixtureRoot | Out-Null
-    $cabinetOutput = Join-Path $artDirectory 'cabinet.tga'
-    $compactOutput = Join-Path $artDirectory 'cabinet-compact.tga'
     $symbolsOutput = Join-Path $artDirectory 'symbols.tga'
     $logoOutput = Join-Path $publicDirectory 'logo.tga'
     $curseforgeOutput = Join-Path $publicDirectory 'curseforge-icon.png'
-    [SlotArtExportFixture]::AssertTga($cabinetOutput, 1, 630)
-    [SlotArtExportFixture]::AssertTga($compactOutput, 3, 360, 512)
-    [SlotArtExportFixture]::AssertTga($symbolsOutput, 2, 1024)
+    $seed = 0
+    foreach ($asset in $artLayout.assets) {
+        $seed++
+        [SlotArtExportFixture]::AssertTga((Join-Path $artDirectory ($asset.name + '.tga')), $seed, $asset.height, $asset.runtimeHeight)
+        $checks++
+    }
     [SlotArtExportFixture]::AssertLogoExports($logoOutput, $curseforgeOutput)
-    $checks += 4
-    if (@(Get-ChildItem -LiteralPath $artDirectory -File).Count -ne 6) {
+    $checks++
+    if (@(Get-ChildItem -LiteralPath $artDirectory -File).Count -ne $artLayout.assets.Count * 2) {
         throw 'Export created unexpected artwork files'
     }
     $checks++
@@ -162,7 +171,7 @@ try {
     $checks++
 
     [SlotArtExportFixture]::WritePng($cabinetSource, 1, 1024, 630)
-    [SlotArtExportFixture]::WritePng($symbolsSource, 2, 1023, 1024)
+    [SlotArtExportFixture]::WritePng($symbolsSource, $symbolsSeed, 1023, 1024)
     Assert-ExportCheckRejected 'wrong symbols dimensions' 'Expected a 1024x1024 canonical PNG'
     $checks++
     Write-Output "$checks art export checks passed"

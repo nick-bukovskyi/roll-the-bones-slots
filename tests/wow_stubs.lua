@@ -396,6 +396,7 @@ function H.install()
     assert(r and g and b and a)
     self.color = { r, g, b, a }
     H.textureWrites = H.textureWrites + 1
+    self.textureWriteCount = (rawget(self, "textureWriteCount") or 0) + 1
   end
   function methods:SetBlendMode(value)
     check(self)
@@ -410,6 +411,7 @@ function H.install()
     assert(type(maximumColor) == "table" and type(maximumColor.GetRGBA) == "function")
     self.gradient = { minimumColor, maximumColor }
     H.textureWrites = H.textureWrites + 1
+    self.textureWriteCount = (rawget(self, "textureWriteCount") or 0) + 1
   end
   function methods:SetTexture(path, horizontal, vertical, filter)
     check(self)
@@ -419,6 +421,7 @@ function H.install()
     H.eq(filter, "LINEAR")
     self.texture = path
     H.textureWrites = H.textureWrites + 1
+    self.textureWriteCount = (rawget(self, "textureWriteCount") or 0) + 1
   end
   function methods:SetTexCoord(left, right, top, bottom, ...)
     check(self)
@@ -426,6 +429,7 @@ function H.install()
     assert(type(left) == "number" and type(right) == "number" and type(top) == "number" and type(bottom) == "number")
     self.texCoords = { left, right, top, bottom }
     H.textureWrites = H.textureWrites + 1
+    self.textureWriteCount = (rawget(self, "textureWriteCount") or 0) + 1
   end
   function methods:SetDrawLayer(layer, sublayer)
     check(self)
@@ -1198,13 +1202,50 @@ function H.reelCovers(compact)
   local found = {}
   for _, slot in ipairs(H.nativeSlots) do
     if slot.key == "footer" and slot.button.width < 400 then
-      if H.nativeCabinetFile(slot.container) == (compact and "cabinet-compact.tga" or "cabinet.tga") then
+      if slot.button.height == (compact and 80 or 153) then
         found[#found + 1] = slot
       end
     end
   end
   H.eq(#found, 3)
   return found
+end
+
+function H.footerSlot(compact)
+  for _, slot in ipairs(H.nativeSlots) do
+    if slot.button.bindings.SetSpellName and slot.button.height == (compact and 140 or 246) then
+      return slot
+    end
+  end
+  error("native footer missing")
+end
+
+function H.durationSlot(compact)
+  for _, slot in ipairs(H.nativeSlots) do
+    if slot.button.bindings.SetDurationBar and slot.button.height == (compact and 140 or 246) then
+      return slot
+    end
+  end
+  error("native duration bar missing")
+end
+
+function H.cabinetSlot(compact, style)
+  local file = "cabinet-" .. (style or "captains-walnut") .. (compact and "-compact" or "") .. ".tga"
+  for _, slot in ipairs(H.nativeSlots) do
+    if H.nativeCabinetFile(slot.container) == file then
+      return slot
+    end
+  end
+  error("native cabinet missing: " .. file)
+end
+
+function H.isCompactContainer(container)
+  for _, slot in ipairs(H.nativeSlots) do
+    if slot.container == container then
+      return slot.button.height == 140 or slot.key == "footer" and slot.button.width < 400 and slot.button.height == 80
+    end
+  end
+  return false
 end
 
 function H.symbolInfo(texture)

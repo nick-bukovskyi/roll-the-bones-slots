@@ -20,12 +20,24 @@ $null = New-Item -ItemType Directory -Path $fixtureScriptDirectory, `
     $fixturePublicDirectory, $fixtureArtDirectory, $fixtureScreenshotsDirectory
 $fixtureScript = Join-Path $fixtureScriptDirectory 'package.ps1'
 Copy-Item -LiteralPath (Join-Path $projectRoot 'scripts/package.ps1') -Destination $fixtureScript
+Copy-Item -LiteralPath (Join-Path $projectRoot 'scripts/read-art-layout.ps1') -Destination $fixtureScriptDirectory
+foreach ($name in @('Appearance.lua', 'Layouts.lua')) {
+    Copy-Item -LiteralPath (Join-Path $projectRoot "src/$name") -Destination $fixtureSourceDirectory
+}
+$artLayout = & (Join-Path $fixtureScriptDirectory 'read-art-layout.ps1') -ProjectRoot $fixtureRoot
+$mediaNames = @($artLayout.assets | ForEach-Object { $_.name + '.tga' })
 # The real export algorithm is covered by art_export_spec; exercise its package boundary here
 Set-Content -LiteralPath (Join-Path $fixtureScriptDirectory 'export-art.ps1') -Value @'
 param([switch]$Check)
 if (-not $Check) { throw 'Packaging must check textures without exporting them' }
 $failurePath = Join-Path (Split-Path -Parent $PSScriptRoot) 'public/art/export-error.txt'
 if (Test-Path -LiteralPath $failurePath) { throw 'Stale texture export' }
+'@
+Set-Content -LiteralPath (Join-Path $fixtureScriptDirectory 'prepare-cabinets.ps1') -Value @'
+param([switch]$Check)
+if (-not $Check) { throw 'Packaging must check prepared cabinets without rewriting them' }
+$failurePath = Join-Path (Split-Path -Parent $PSScriptRoot) 'public/art/prepare-error.txt'
+if (Test-Path -LiteralPath $failurePath) { throw 'Stale prepared cabinet' }
 '@
 $fixtureToc = Join-Path $fixtureRoot 'RollTheBonesSlots.toc'
 $fixtureIconMetadata = '## IconTexture: Interface\AddOns\RollTheBonesSlots\public\logo.tga'
@@ -108,12 +120,12 @@ try {
     $validTga[14] = 4
     $validTga[16] = 32
     $validTga[17] = 8
-    foreach ($name in @('cabinet.tga', 'cabinet-compact.tga', 'symbols.tga')) {
+    foreach ($name in $mediaNames) {
         [IO.File]::WriteAllBytes((Join-Path $fixtureArtDirectory $name), $validTga)
     }
     [IO.File]::WriteAllBytes((Join-Path $fixturePublicDirectory 'logo.tga'), $validTga)
-    $expectedPaths = @('RollTheBonesSlots.toc', 'LICENSE', 'docs/CHANGELOG.md', 'src/Main.lua', `
-        'public/art/cabinet.tga', 'public/art/cabinet-compact.tga', 'public/art/symbols.tga', 'public/logo.tga')
+    $expectedPaths = @('RollTheBonesSlots.toc', 'LICENSE', 'docs/CHANGELOG.md', 'src/Main.lua', 'public/logo.tga') +
+        @($mediaNames | ForEach-Object { 'public/art/' + $_ })
     foreach ($interface in @('123456', '654321')) {
         Set-Content -LiteralPath $fixtureToc -Value @("## Interface: $interface", '## Version: fixture',
             $fixtureIconMetadata, 'src\Main.lua')
@@ -172,6 +184,12 @@ try {
     Remove-Item -LiteralPath $exportFailurePath
     $checks++
 
+    $prepareFailurePath = Join-Path $fixtureArtDirectory 'prepare-error.txt'
+    Set-Content -LiteralPath $prepareFailurePath -Value 'Synthetic stale cabinet'
+    Assert-PackageRejected 'stale prepared cabinet' 'Stale prepared cabinet'
+    Remove-Item -LiteralPath $prepareFailurePath
+    $checks++
+
     # A failed content check must discard its pending ZIP and preserve the previous archive
     function Get-FileHash {
         param([string]$LiteralPath, [string]$Algorithm)
@@ -187,7 +205,7 @@ try {
         Remove-Item -LiteralPath Function:\Get-FileHash
     }
 
-    foreach ($name in @('cabinet.tga', 'cabinet-compact.tga', 'symbols.tga')) {
+    foreach ($name in $mediaNames) {
         $assetPath = Join-Path $fixtureArtDirectory $name
         $omittedPath = Join-Path $fixtureArtDirectory "$name.omitted"
         Move-Item -LiteralPath $assetPath -Destination $omittedPath
@@ -195,11 +213,12 @@ try {
         Move-Item -LiteralPath $omittedPath -Destination $assetPath
         $checks++
     }
-    $cabinetPath = Join-Path $fixtureArtDirectory 'cabinet.tga'
-    $wrongCasePath = Join-Path $fixtureArtDirectory 'Cabinet.tga'
-    Rename-Item -LiteralPath $cabinetPath -NewName 'Cabinet.tga'
+    $cabinetName = $mediaNames[0]
+    $cabinetPath = Join-Path $fixtureArtDirectory $cabinetName
+    $wrongCasePath = Join-Path $fixtureArtDirectory $cabinetName.ToUpperInvariant()
+    Rename-Item -LiteralPath $cabinetPath -NewName $cabinetName.ToUpperInvariant()
     Assert-PackageRejected 'incorrect media casing' 'Missing file or incorrect casing'
-    Rename-Item -LiteralPath $wrongCasePath -NewName 'cabinet.tga'
+    Rename-Item -LiteralPath $wrongCasePath -NewName $cabinetName
     $checks++
 
     $invalidTextures = @(
@@ -233,7 +252,7 @@ try {
     Assert-PackageRejected 'truncated symbol atlas' 'Truncated TGA pixel data'
     [IO.File]::WriteAllBytes($symbolsPath, $validTga)
     $checks++
-    Add-Content -LiteralPath $fixtureToc -Value 'public/art/cabinet.tga'
+    Add-Content -LiteralPath $fixtureToc -Value ('public/art/' + $cabinetName)
     Assert-PackageRejected 'duplicate runtime media' 'Duplicate package path'
     $checks++
     Write-Output "$checks package checks passed"

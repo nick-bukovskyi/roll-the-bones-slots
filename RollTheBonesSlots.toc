@@ -8,6 +8,7 @@
 ## RequiredDeps: Blizzard_AuraContainer
 ## X-Curse-Project-ID: 1682397
 
+src\Appearance.lua
 src\Config.lua
 src\Game.lua
 src\Layouts.lua

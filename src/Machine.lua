@@ -201,11 +201,15 @@ local function RenderPresentation()
     display:SetShown(live)
   end
   local showBar = ns.Config.GetDurationBarEnabled()
+  local cabinetStyle = ns.Config.GetCabinetStyle()
   for _, mode in ipairs(modes) do
     local current = mode.layout == layout
-    mode.cabinet:SetShown(visible and not activeOnly and current)
-    mode.nativeCabinet:SetEnabled(activeOnly and current)
-    mode.nativeCabinet:SetShown(activeOnly and current)
+    for _, cabinet in ipairs(mode.cabinets) do
+      local selected = current and cabinet.style.value == cabinetStyle
+      cabinet.frame:SetShown(visible and not activeOnly and selected)
+      cabinet.display:SetEnabled(activeOnly and selected)
+      cabinet.display:SetShown(activeOnly and selected)
+    end
     for _, cover in ipairs(mode.covers) do
       cover:SetEnabled(live and current)
       cover:SetShown(live and current)
@@ -279,14 +283,23 @@ local function CreateFooter(modeLayout)
 end
 
 local function CreateMode(modeLayout)
-  local mode = { layout = modeLayout, covers = {} }
-  mode.cabinet = CreateFrame("Frame", nil, frame)
-  mode.cabinet:SetSize(ns.Layouts.Width, modeLayout.height)
-  mode.cabinet:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, 0)
-  ns.Art.Cabinet(mode.cabinet, modeLayout)
-  mode.nativeCabinet = ns.Game.CreateBuffDisplay(frame, function(button)
-    ns.Art.NativeCabinet(button, modeLayout)
-  end)
+  local mode = { layout = modeLayout, covers = {}, cabinets = {} }
+  -- Cabinet ownership is independent of the shared reel and footer renderers
+  -- Initialize native artwork once, then select only its ordinary container
+  for _, style in ipairs(ns.Appearance.Cabinets) do
+    local cabinet = { style = style }
+    cabinet.frame = CreateFrame("Frame", nil, frame)
+    cabinet.frame:SetSize(ns.Layouts.Width, modeLayout.height)
+    cabinet.frame:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, 0)
+    ns.Art.Cabinet(cabinet.frame, modeLayout, style)
+    cabinet.display = ns.Game.CreateBuffDisplay(frame, function(button)
+      ns.Art.NativeCabinet(button, modeLayout, style)
+    end)
+    cabinet.frame:Hide()
+    cabinet.display:SetEnabled(false)
+    cabinet.display:Hide()
+    mode.cabinets[#mode.cabinets + 1] = cabinet
+  end
   mode.footer = CreateFooter(modeLayout)
   return mode
 end

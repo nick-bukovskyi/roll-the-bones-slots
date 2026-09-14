@@ -5,7 +5,7 @@ return function(test, ns, harness)
   test("first load creates conservative account-wide defaults", function()
     local root = Config.Initialize(nil)
     eq(_G.RollTheBonesSlotsDB, root)
-    eq(root.schemaVersion, 3)
+    eq(root.schemaVersion, 4)
     eq(Config.GetScale(), 1)
     local x, y = Config.GetPosition()
     eq(x, 0)
@@ -40,7 +40,7 @@ return function(test, ns, harness)
   test("unversioned preferences gain missing fields without replacing valid fields", function()
     local root = { scale = 0.75, x = 85, animationEnabled = false, extra = "preserved" }
     Config.Initialize(root)
-    eq(root.schemaVersion, 3)
+    eq(root.schemaVersion, 4)
     eq(root.scale, 0.75)
     eq(root.x, 85)
     eq(root.y, 140)
@@ -58,7 +58,7 @@ return function(test, ns, harness)
       extra = "preserved",
     }
     Config.Initialize(root)
-    eq(root.schemaVersion, 3)
+    eq(root.schemaVersion, 4)
     eq(root.scale, 1)
     eq(root.x, 90.25)
     eq(root.y, 140)
@@ -71,7 +71,7 @@ return function(test, ns, harness)
       local root = Config.Initialize(invalid)
       eq(type(root), "table")
       eq(root.scale, 1)
-      eq(root.schemaVersion, 3)
+      eq(root.schemaVersion, 4)
     end
     local root = Config.Initialize({
       schemaVersion = harness.secret,
@@ -80,7 +80,7 @@ return function(test, ns, harness)
       y = 12,
       animationEnabled = harness.secret,
     })
-    eq(root.schemaVersion, 3)
+    eq(root.schemaVersion, 4)
     eq(root.scale, 1)
     eq(root.x, 0)
     eq(root.y, 12)
@@ -153,7 +153,7 @@ return function(test, ns, harness)
         }
         Config.Initialize(root)
         eq(Config.GetCompactMode(), value == true)
-        eq(root.schemaVersion, 3)
+        eq(root.schemaVersion, 4)
         eq(root.scale, 0.1)
         eq(root.x, 80)
         eq(root.y, -60)
@@ -176,7 +176,7 @@ return function(test, ns, harness)
     eq(Config.GetScale(), 0.1)
     Config.Reset()
     eq(root.compactMode, false)
-    local future = { schemaVersion = 4, compactMode = "future layout" }
+    local future = { schemaVersion = 5, compactMode = "future layout" }
     Config.Initialize(future)
     eq(Config.GetCompactMode(), false)
     eq(Config.SetCompactMode(true), false)
@@ -207,7 +207,7 @@ return function(test, ns, harness)
     })
     eq(Config.Reset(), true)
     eq(_G.RollTheBonesSlotsDB, root)
-    eq(root.schemaVersion, 3)
+    eq(root.schemaVersion, 4)
     eq(root.scale, 1)
     eq(root.x, 0)
     eq(root.y, 140)
@@ -218,7 +218,7 @@ return function(test, ns, harness)
   test("a newer schema stays untouched and cannot be changed by older settings controls", function()
     local unknown = { retained = true }
     local root = {
-      schemaVersion = 4,
+      schemaVersion = 5,
       scale = 1.7,
       x = "future position",
       y = false,
@@ -237,7 +237,7 @@ return function(test, ns, harness)
     eq(Config.SetPosition(2, 3), false)
     eq(Config.SetAnimationEnabled(false), false)
     eq(Config.Reset(), false)
-    eq(root.schemaVersion, 4)
+    eq(root.schemaVersion, 5)
     eq(root.scale, 1.7)
     eq(root.x, "future position")
     eq(root.y, false)
