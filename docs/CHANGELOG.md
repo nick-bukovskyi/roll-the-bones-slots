@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.4.0] - 2026-09-14
+
+### Added
+
+- Choose Captain's Walnut, Sailor's Case, Tavern Oak, Ironbound Case, or Oxblood Travel Case in Edit Mode. Captain's Walnut is the default, and every style fits both Full and Compact without moving the reels or buff details.
+
 ## [0.3.1] - 2026-09-14
 
 ### Added
