@@ -83,8 +83,35 @@ local function StopInteraction()
   ns.Machine.StopSpin()
 end
 
+local function SlashCommand(message)
+  if issecretvalue(message) or type(message) ~= "string" then
+    return
+  end
+  if message:lower():match("^%s*(.-)%s*$") ~= "reset" then
+    return
+  end
+  if not ns.Game.CanConfigure() then
+    print("Roll the Bones Slots: Reset is unavailable during combat or restricted encounters; try /rtbs reset again afterward")
+    return
+  end
+  if not initialized then
+    ns.Config.Initialize(_G.RollTheBonesSlotsDB)
+  end
+  if ns.Config.IsReadOnly() then
+    print("Roll the Bones Slots: Newer saved settings preserved; update the addon before resetting")
+    return
+  end
+  StopInteraction()
+  ns.Config.Reset()
+  layoutDirty = true
+  Refresh()
+  print("Roll the Bones Slots: Settings and position reset to defaults")
+end
+
 local function Start()
   eventFrame:UnregisterEvent("PLAYER_LOGIN")
+  SLASH_ROLLTHEBONESSLOTS1 = "/rtbs"
+  SlashCmdList.ROLLTHEBONESSLOTS = SlashCommand
   if ns.Game.IsRogue() == false then
     eventFrame:UnregisterEvent("ADDON_LOADED")
     return

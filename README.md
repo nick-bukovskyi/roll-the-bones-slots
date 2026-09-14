@@ -43,6 +43,8 @@ between casts.
   while you adjust your setup.
 - **Keep your preferences:** Position, scale, visibility, and animation choices
   are shared across characters. Reset to Defaults gives you a fresh start.
+  If you cannot find the chest, type `/rtbs reset` to restore its default position
+  and settings.
 - **Optional EnhanceQoL support:** Move between the chest and EnhanceQoL's
   Edit Mode controls with one settings window open at a time.
 

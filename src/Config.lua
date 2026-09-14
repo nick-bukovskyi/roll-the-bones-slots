@@ -8,6 +8,7 @@ local SCHEMA_VERSION = 3
 local MIN_SCALE, MAX_SCALE = 0.1, 1.8
 local DEFAULTS = {
   scale = 1,
+  -- Offsets from screen center; the display clamps them to the current screen size
   x = 0,
   y = 140,
   animationEnabled = true,
