@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.3.1] - 2026-09-14
+
+### Added
+
+- Type `/rtbs reset` to restore all settings and move the chest back just above the center of the screen.
+
+### Fixed
+
+- Outlaw Rogues are no longer prevented from seeing the chest by an exact game build check or an unavailable Roll the Bones spellbook entry.
+
 ## [0.3.0] - 2026-09-10
 
 ### Changed
