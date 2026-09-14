@@ -37,6 +37,9 @@ between casts.
 - **Choose your size:** Scale the display from 10% to 180% using a slider or by
   typing a percentage. Choose Full or Compact in Edit Mode. Compact removes
   the title and uses smaller symbols and a thinner row for your buff details.
+- **Choose your cabinet:** Pick from five painted styles in Edit Mode, from
+  Captain's Walnut to a weathered Sailor's Case or stitched Oxblood Travel Case.
+  Every style keeps your reels and buff details in the same place.
 - **Choose when it appears:** Keep it visible, show it only while a buff is
   active, or show it only in combat.
 - **Try the look:** Test spin previews all four results and the empty display
@@ -45,8 +48,6 @@ between casts.
   are shared across characters. Reset to Defaults gives you a fresh start.
   If you cannot find the chest, type `/rtbs reset` to restore its default position
   and settings.
-- **Optional EnhanceQoL support:** Move between the chest and EnhanceQoL's
-  Edit Mode controls with one settings window open at a time.
 
 ## Know your symbols
 
