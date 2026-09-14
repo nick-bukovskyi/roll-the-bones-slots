@@ -50,9 +50,6 @@ return function(test, H, loadAddon)
     { field = "spec" },
     { field = "spec", value = 0 },
     { field = "spec", value = H.secret },
-    { field = "known" },
-    { field = "known", value = false },
-    { field = "known", value = H.secret },
   }
 
   test("other classes never initialize settings, widgets, hooks or runtime events", function()
@@ -110,6 +107,31 @@ return function(test, H, loadAddon)
       eq(y, -35)
       eq(saved.schemaVersion, 3)
       eq(H.auraSlotCount, 49)
+    end
+  end)
+
+  test("Outlaw initializes without a known Roll the Bones spell and stays active through spellbook changes", function()
+    for _, case in ipairs({ {}, { known = false }, { known = H.secret } }) do
+      for _, late in ipairs({ false, true }) do
+        local ns = login(function()
+          H.known = case.known
+        end, nil, late)
+        local frame = assert(ns.Machine.GetFrame())
+        eq(frame:IsVisible(), true)
+        eq(_G.RollTheBonesSlotsDB.visibility, "always")
+        local frames, hooks, slots = #H.frames, H.hookCount, H.auraSlotCount
+        H.fire("UNIT_SPELLCAST_SUCCEEDED", "player", "roll", 1214909)
+        local animation = assert(frame.scripts.OnUpdate)
+        H.known = true
+        H.fire("SPELLS_CHANGED")
+        H.known = case.known
+        H.fire("TRAIT_CONFIG_UPDATED", 1)
+        eq(frame:IsVisible(), true)
+        eq(frame.scripts.OnUpdate, animation)
+        eq(#H.frames, frames)
+        eq(H.hookCount, hooks)
+        eq(H.auraSlotCount, slots)
+      end
     end
   end)
 

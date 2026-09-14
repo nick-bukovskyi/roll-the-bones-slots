@@ -379,11 +379,8 @@ return function(test, H, loadAddon)
       for _, fault in ipairs({
         { "spec", 0 },
         { "spec", 259 },
-        { "known", false },
         { "spec" },
-        { "known" },
         { "spec", H.secret },
-        { "known", H.secret },
       }) do
         H.fire("UNIT_SPELLCAST_SUCCEEDED", "player", fault[1] .. tostring(#H.pointWrites), 1214909)
         H[fault[1]] = fault[2]
@@ -393,7 +390,7 @@ return function(test, H, loadAddon)
         reelState(ns, "hidden")
         nativeState(false, false, true)
         eq(frame.scripts.OnUpdate, nil)
-        H.spec, H.known = 260, true
+        H.spec = 260
         H.fire("TRAIT_CONFIG_UPDATED")
         eq(frame:IsVisible(), true)
         footerState(ns, mode == "active" and "hidden" or "empty", true)

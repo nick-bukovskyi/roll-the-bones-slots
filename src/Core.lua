@@ -85,11 +85,6 @@ end
 
 local function Start()
   eventFrame:UnregisterEvent("PLAYER_LOGIN")
-  if not ns.Game.IsSupportedClient() then
-    eventFrame:UnregisterEvent("ADDON_LOADED")
-    print("Roll the Bones Slots: Inactive on this client; this build targets " .. ns.Game.ClientLabel)
-    return
-  end
   if ns.Game.IsRogue() == false then
     eventFrame:UnregisterEvent("ADDON_LOADED")
     return

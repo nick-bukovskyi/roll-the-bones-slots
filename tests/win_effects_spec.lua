@@ -550,11 +550,11 @@ return function(test, H, loadAddon)
       },
       {
         function()
-          H.known = false
+          H.spec = nil
           H.fire("SPELLS_CHANGED")
         end,
         function()
-          H.known = true
+          H.spec = 260
           H.fire("SPELLS_CHANGED")
         end,
       },

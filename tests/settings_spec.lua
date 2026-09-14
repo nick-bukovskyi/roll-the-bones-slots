@@ -452,7 +452,7 @@ return function(test, H, loadAddon)
         eq(frame:IsVisible(), true)
         H.known = false
         H.fire("SPELLS_CHANGED")
-        eq(frame:IsVisible(), false)
+        eq(frame:IsVisible(), true)
         H.known = true
         H.fire("TRAIT_CONFIG_UPDATED")
         eq(frame:IsVisible(), true)

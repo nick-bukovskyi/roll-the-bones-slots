@@ -1,10 +1,8 @@
--- Build-specific game boundary and native-only live aura rendering
+-- Game boundary and native-only live aura rendering
 local _, ns = ...
 local Game = {}
 ns.Game = Game
 
-local TARGET_VERSION, TARGET_BUILD = "12.1.0", "69587"
-Game.ClientLabel = "Retail " .. TARGET_VERSION .. "." .. TARGET_BUILD
 local OUTLAW_SPEC_ID = 260
 local ROLL_THE_BONES = 1214909
 
@@ -17,11 +15,6 @@ Game.Results = {
   { spellID = 1214935, label = "Triple Threat", symbols = { 1, 1, 1 } },
   { spellID = 1214937, label = "Jackpot", symbols = { 5, 5, 5 } },
 }
-
-function Game.IsSupportedClient()
-  local version, build = GetBuildInfo()
-  return WOW_PROJECT_ID == WOW_PROJECT_MAINLINE and version == TARGET_VERSION and build == TARGET_BUILD
-end
 
 function Game.IsRogue()
   local _, classToken = UnitClass("player")
@@ -40,11 +33,7 @@ function Game.IsOutlaw()
     return false
   end
   local specID = C_SpecializationInfo.GetSpecializationInfo(index)
-  if issecretvalue(specID) or specID ~= OUTLAW_SPEC_ID then
-    return false
-  end
-  local known = C_SpellBook.IsSpellKnown(ROLL_THE_BONES)
-  return not issecretvalue(known) and known == true
+  return not issecretvalue(specID) and specID == OUTLAW_SPEC_ID
 end
 
 function Game.IsRollCast(unit, spellID)

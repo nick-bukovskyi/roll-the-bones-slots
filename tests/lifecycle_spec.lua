@@ -126,25 +126,21 @@ return function(test, H, loadAddon)
     eq(SLASH_ROLLTHEBONESSLOTS1, nil)
   end)
 
-  test("unsupported build or flavor preserves saved data and creates no native display", function()
-    for _, mismatch in ipairs({ "build", "version", "flavor" }) do
-      local saved = { scale = 1.4 }
-      loadAddon(saved)
-      if mismatch == "build" then
-        H.build = "99999"
-      elseif mismatch == "version" then
-        H.version = "12.1.1"
-      else
-        WOW_PROJECT_ID = 2
-      end
+  test("Retail hotfix builds do not block Outlaw initialization or replace valid settings", function()
+    for _, build in ipairs({ "69587", "69814" }) do
+      local saved = { scale = 1.4, x = 42, y = -37, visibility = "always" }
+      local ns = loadAddon(saved)
+      H.build = build
       H.fire("ADDON_LOADED", "RollTheBonesSlots")
       H.fire("PLAYER_LOGIN")
-      eq(saved.schemaVersion, nil)
+      eq(ns.Machine.GetFrame():IsVisible(), true)
+      eq(_G.RollTheBonesSlotsDB, saved)
+      eq(saved.schemaVersion, 3)
       eq(saved.scale, 1.4)
-      eq(H.auraSlotCount, 0)
-      eq(#H.frames, 1)
-      eq(next(SlashCmdList), nil)
-      eq(next(H.callbacks), nil)
+      eq(saved.x, 42)
+      eq(saved.y, -37)
+      eq(H.auraSlotCount, 49)
+      eq(#H.messages, 0)
     end
   end)
 
@@ -460,7 +456,7 @@ return function(test, H, loadAddon)
     eq(#H.timers, 0)
   end)
 
-  test("spec, missing spell, overlays and loading clear work and recover without rebuilding", function()
+  test("spec changes, overlays and loading clear work and recover without rebuilding", function()
     login()
     local cabinet = H.cabinet()
     local count = #H.frames
@@ -474,7 +470,7 @@ return function(test, H, loadAddon)
     eq(cabinet:IsVisible(), true)
     H.known = false
     H.fire("TRAIT_CONFIG_UPDATED")
-    eq(cabinet:IsVisible(), false)
+    eq(cabinet:IsVisible(), true)
     H.known = true
     H.fire("SPELLS_CHANGED")
     eq(cabinet:IsVisible(), true)
