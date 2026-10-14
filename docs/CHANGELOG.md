@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.4.1] - 2026-10-13
+
+### Added
+
+- Support for WoW 12.1.5
+
 ## [0.4.0] - 2026-09-14
 
 ### Added
